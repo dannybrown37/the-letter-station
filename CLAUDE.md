@@ -68,7 +68,7 @@ To add a game: write a `run` function using `screen()`, add an entry to `GAMES`.
 - Screenshot at phone width (390x844) with headless Chrome, plus one at desktop width. Then look at the images. Emoji render as boxes in headless Chrome; that's expected, phones show them.
   `google-chrome --headless=new --disable-gpu --hide-scrollbars --window-size=390,844 --virtual-time-budget=5000 --screenshot=/tmp/shots/x.png "http://localhost:8080/#storeHunt"`
 - Git repo `dannybrown37/the-letter-station` (public); user handles git.
-- Hosted on GitHub Pages from `main` root: https://dannybrown37.github.io/the-letter-station/ — pushing `main` deploys. Keep all paths relative (site lives under `/the-letter-station/`).
+- Hosted on GitHub Pages: https://dannybrown37.github.io/the-letter-station/. `.github/workflows/pages.yml` runs `npm test`, then deploys on push to `main`. It copies an explicit file list into `_site`, so add new top-level app files there too. Keep all paths relative (site lives under `/the-letter-station/`).
 
 ## Ideas backlog (user hasn't approved these yet)
 
