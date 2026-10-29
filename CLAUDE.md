@@ -8,6 +8,7 @@ Learning game for the user's son (autistic). Special interests: letters, The Lea
 - **No build step, no dependencies.** Plain HTML/CSS/ES modules. Installable PWA (`manifest.webmanifest`). Must work when hosted as static files.
 - **Kind feedback.** Wrong answers never end a round — he keeps tapping until he finds it (`choiceButtons` in `js/app.js`). No timers, no losing, no harsh sounds.
 - **Read aloud, with a top-bar toggle (🔊/🔇, localStorage `narration`).** `say()` = automatic narration, obeys the toggle. `speak()` = something he tapped to hear (🔊 Hear it, word chips, kind badge); always talks. Use the right one.
+- **Dark theme only** (user asked: the light theme was too bright). Use the `--bg/--card/--panel/--ink/--muted/--line` vars, never `#fff` backgrounds. Brand-colored text goes through `brandText()` so dark brand colors stay readable.
 - Respect `prefers-reduced-motion` (already handled in CSS).
 - User-entered text (video titles/questions) goes in via `textContent` only — the `h()` helper never uses innerHTML. Keep it that way.
 - Don't hardcode YouTube video IDs or image URLs from memory; they rot or are wrong. Parent pastes videos; store images come from Wikipedia at runtime.
@@ -20,6 +21,7 @@ index.html            shell: topbar (home btn, title, narration toggle, star cou
 style.css             all styles; CSS vars in :root
 manifest.webmanifest  PWA
 icon.svg
+sw.js                 service worker: offline. Own files network-first (deploys show up at once), Wikipedia images cache-first. Add new app files to SHELL_FILES.
 js/data.js            STATES, KINDS, STORES, WORDS, CATEGORY_INFO, VIDEO_QUESTIONS, VIDEO_CHANNELS
 js/logic.js           pure, testable: question generators, letter helpers, parseYouTubeId
 js/app.js             DOM: h() helper, speech/sounds/confetti, stars, screens, hash router
@@ -65,8 +67,9 @@ To add a game: write a `run` function using `screen()`, add an entry to `GAMES`.
 - TDD for logic in `js/logic.js` and data invariants; UI-only changes are checked with screenshots instead.
 - Screenshot at phone width (390x844) with headless Chrome, plus one at desktop width. Then look at the images. Emoji render as boxes in headless Chrome; that's expected, phones show them.
   `google-chrome --headless=new --disable-gpu --hide-scrollbars --window-size=390,844 --virtual-time-budget=5000 --screenshot=/tmp/shots/x.png "http://localhost:8080/#storeHunt"`
-- Not a git repo yet; user handles git.
+- Git repo `dannybrown37/the-letter-station` (public); user handles git.
+- Hosted on GitHub Pages from `main` root: https://dannybrown37.github.io/the-letter-station/ — pushing `main` deploys. Keep all paths relative (site lives under `/the-letter-station/`).
 
 ## Ideas backlog (user hasn't approved these yet)
 
-Tappable SVG US map, more stores, a "spell the store" game, voice speed setting, hosting (GitHub Pages) so it runs on his phone, a "big everything store" kind for Meijer/Wegmans.
+Tappable SVG US map, more stores, a "spell the store" game, voice speed setting, a "big everything store" kind for Meijer/Wegmans.

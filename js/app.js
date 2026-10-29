@@ -11,6 +11,8 @@ const STORES_AZ = [...STORES].sort(byName);
 const app = document.getElementById("app");
 const titleEl = document.getElementById("title");
 const COLORS = ["#ff5ca8", "#3fa9f5", "#36c275", "#ff8a3d", "#8f6bff", "#ffb800", "#00b8a9"];
+// Brand colors are often dark (Trader Joe's red); lighten them so they read on the dark theme.
+const brandText = (color) => ({ color: `color-mix(in srgb, ${color} 60%, white)` });
 const CHEERS = ["Great job!", "You got it!", "Awesome!", "Super smart!", "Way to go!", "Yes! Amazing!", "High five!"];
 
 // ---------- tiny DOM helper (textContent only, so saved video titles can't inject HTML) ----------
@@ -213,7 +215,7 @@ function kindBadge(s) {
 }
 
 function storeHeader(s) {
-  return [storePicture(s), h("div", { class: "store-name", style: { color: s.color } }, s.name), kindBadge(s)];
+  return [storePicture(s), h("div", { class: "store-name", style: brandText(s.color) }, s.name), kindBadge(s)];
 }
 
 const article = (word) => (/^[AEIOU]/i.test(word) ? "an" : "a");
@@ -222,7 +224,7 @@ const aOrAn = (word) => `${article(word)} ${word}`;
 // Big chains read better as "every state except ..." than a wall of 47 chips.
 function footprint(s, highlight) {
   const missing = Object.keys(STATES).filter((c) => !s.states.includes(c));
-  if (missing.length === 0) return h("div", { class: "prompt", style: { color: s.color } }, `${s.name} is in all 50 states! 🎉`);
+  if (missing.length === 0) return h("div", { class: "prompt", style: brandText(s.color) }, `${s.name} is in all 50 states! 🎉`);
   if (s.states.length > 25) {
     return [
       h("div", { class: "sub" }, `${s.name} is in ${s.states.length} states. Every state except:`),
@@ -245,7 +247,7 @@ function storeHunt() {
     h("div", { class: "card", style: { borderTop: `10px solid ${q.store.color}` } },
       storeHeader(q.store),
       h("div", { class: "prompt" }, `Which state ${verb} ${article(name)} `,
-        h("span", { style: { color: q.store.color } }, name), "?"),
+        h("span", { style: brandText(q.store.color) }, name), "?"),
       sayButton(prompt),
       streakLine()),
     choiceButtons(q.choices, {
@@ -267,7 +269,7 @@ function yesNo() {
     h("div", { class: "card" },
       storeHeader(q.store),
       h("div", { class: "prompt" }, "Does ", h("span", { style: { color: "#3fa9f5" } }, stateName),
-        ` have ${article(q.store.name)} `, h("span", { style: { color: q.store.color } }, q.store.name), "?"),
+        ` have ${article(q.store.name)} `, h("span", { style: brandText(q.store.color) }, q.store.name), "?"),
       sayButton(prompt),
       streakLine()),
     (() => {
@@ -288,7 +290,7 @@ function yesNo() {
 
 function stateChips(codes, color, highlight) {
   return h("div", { class: "chips" }, [...codes].sort((a, b) => STATES[a].localeCompare(STATES[b])).map((c) =>
-    h("span", { class: "chip on", style: { background: color, outline: c === highlight ? "4px solid #2b2140" : "" } }, STATES[c])));
+    h("span", { class: "chip on", style: { background: color, outline: c === highlight ? "4px solid #fff" : "" } }, STATES[c])));
 }
 
 let trainSettings = { category: null, letter: null };
@@ -529,4 +531,5 @@ function route() {
 document.getElementById("home-btn").addEventListener("click", () => { location.hash = ""; });
 window.addEventListener("hashchange", route);
 route();
+navigator.serviceWorker?.register("sw.js");
 
