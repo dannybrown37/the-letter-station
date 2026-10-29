@@ -70,43 +70,44 @@ button:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0, 0, 0, .4
 
 main {
   max-width: 520px; margin: 0 auto;
-  padding: 16px 14px calc(env(safe-area-inset-bottom) + 32px);
+  padding: 12px 12px calc(env(safe-area-inset-bottom) + 20px);
 }
 
-.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .tile {
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
-  min-height: 140px; padding: 14px 8px;
+  min-height: 104px; padding: 10px 8px;
   border-radius: var(--radius); box-shadow: var(--shadow);
   color: #fff; font-weight: 900; font-size: 1.1rem; text-align: center; line-height: 1.15;
 }
-.tile .big { font-size: 3rem; line-height: 1; }
-.tile.wide { grid-column: span 2; min-height: 110px; flex-direction: row; gap: 14px; }
+.tile .big { font-size: 2.4rem; line-height: 1; }
+.tile.wide { grid-column: span 2; min-height: 80px; flex-direction: row; gap: 14px; }
 
 .card {
   background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
-  padding: 18px; margin-bottom: 16px; text-align: center;
+  padding: 12px 14px; margin-bottom: 12px; text-align: center;
 }
-.prompt { font-size: 1.5rem; font-weight: 900; margin: 6px 0 2px; line-height: 1.2; }
+.prompt { font-size: 1.4rem; font-weight: 900; margin: 4px 0 2px; line-height: 1.2; }
 .prompt span { white-space: nowrap; }
 .sub { font-size: 1rem; opacity: .7; margin: 4px 0; }
 .giant { font-size: 5rem; font-weight: 900; line-height: 1; margin: 4px 0; }
 .store-pic {
   display: flex; align-items: center; justify-content: center;
-  height: 170px; margin: -4px -4px 10px; border-radius: 16px; overflow: hidden; background: var(--panel);
+  height: 110px; margin: -2px -4px 6px; border-radius: 16px; overflow: hidden; background: var(--panel);
 }
 .store-pic img { width: 100%; height: 100%; object-fit: contain; }
-.store-name { font-size: 2rem; font-weight: 900; line-height: 1.1; }
+.store-name { font-size: 1.7rem; font-weight: 900; line-height: 1.1; }
 .kind {
-  display: inline-block; margin: 6px 0 4px; padding: 6px 14px; border-radius: 999px;
+  display: inline-block; margin: 4px 0 2px; padding: 4px 12px; border-radius: 999px;
   background: #0e0a14; color: var(--ink); font-weight: 800; font-size: 1rem;
 }
-.say { background: var(--yellow); color: #2b2140; border-radius: 999px; padding: 8px 16px; font-size: 1.1rem; font-weight: 800; margin-top: 8px; box-shadow: var(--shadow); }
+.say { background: var(--yellow); color: #2b2140; border-radius: 999px; padding: 6px 16px; font-size: 1.1rem; font-weight: 800; margin-top: 6px; box-shadow: var(--shadow); }
 
-.choices { display: grid; gap: 12px; }
+.choices { display: grid; gap: 10px; }
+.choices.two .choice { font-size: 1.15rem; padding: 8px 6px; }
 .choices.two { grid-template-columns: 1fr 1fr; }
 .choice {
-  min-height: 72px; padding: 12px;
+  min-height: 64px; padding: 10px;
   border-radius: 18px; background: var(--card); box-shadow: var(--shadow);
   font-size: 1.35rem; font-weight: 800;
   border: 4px solid transparent;
@@ -121,7 +122,7 @@ main {
 .answer:focus { outline: none; border-color: var(--blue); }
 .answer.right { background: var(--green); border-color: var(--green); color: #fff; }
 .hint { text-align: center; min-height: 1.4em; margin-top: 8px; }
-.next {width: 100%; margin-top: 16px; min-height: 64px; border-radius: 18px; background: var(--blue); color: #fff; font-size: 1.4rem; font-weight: 900; box-shadow: var(--shadow); }
+.next {width: 100%; margin-top: 12px; min-height: 64px; border-radius: 18px; background: var(--blue); color: #fff; font-size: 1.4rem; font-weight: 900; box-shadow: var(--shadow); }
 
 .letters { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
 .letter {

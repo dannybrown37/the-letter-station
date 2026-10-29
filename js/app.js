@@ -262,6 +262,7 @@ function storeHunt() {
       sayButton(prompt),
       streakLine()),
     choiceButtons(q.choices, {
+      cols: 2,
       label: (c) => STATES[c],
       isRight: (c) => q.store.states.includes(c) === q.has,
       rightLine: (c) => (q.has ? `${STATES[c]} has ${aOrAn(name)}!` : `${STATES[c]} doesn't have ${aOrAn(name)}!`),
