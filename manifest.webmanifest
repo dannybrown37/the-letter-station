@@ -1,0 +1,10 @@
+{
+  "name": "The Letter Station",
+  "short_name": "Letter Station",
+  "start_url": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fff6e9",
+  "theme_color": "#ff5ca8",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}
