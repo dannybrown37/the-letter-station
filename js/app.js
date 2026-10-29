@@ -166,6 +166,13 @@ function nextButton(fn) {
   return h("button", { class: "next", onclick: fn }, "Next ➡️");
 }
 
+// iOS scrolls the page up when the keyboard opens; compact the layout and keep it pinned to the top instead.
+const isTyping = () => document.activeElement?.classList.contains("answer");
+document.addEventListener("focusin", () => document.documentElement.classList.toggle("typing", isTyping()));
+document.addEventListener("focusout", () => setTimeout(() => document.documentElement.classList.toggle("typing", isTyping())));
+window.visualViewport?.addEventListener("resize", () => { if (isTyping()) window.scrollTo(0, 0); });
+window.visualViewport?.addEventListener("scroll", () => { if (isTyping() && window.scrollY) window.scrollTo(0, 0); });
+
 function screen(title, ...kids) {
   titleEl.textContent = title;
   app.replaceChildren(...kids.flat());
@@ -314,8 +321,7 @@ function letterTrain() {
   const info = CATEGORY_INFO[q.category];
   const kind = info.label.toLowerCase().replace(/s$/, "");
   const prompt = `Which ${kind} starts with the letter ${q.letter}?`;
-  const result = h("div");
-  const { form, input } = typedAnswerForm(q, kind, result);
+  const { form, input } = typedAnswerForm(q, kind);
   screen("Letter Train 🚂",
     h("div", { class: "tabs" },
       [[null, "🎲 Mix"], ...Object.entries(CATEGORY_INFO).map(([k, v]) => [k, v.emoji])].map(([k, lbl]) =>
@@ -329,36 +335,36 @@ function letterTrain() {
       h("div", { class: "prompt" }, `Which ${info.emoji} ${kind} starts with ${q.letter}?`),
       sayButton(prompt),
       streakLine()),
-    form,
-    result);
+    form);
   say(prompt);
   input.focus();
 }
 
-function typedAnswerForm(q, kind, result) {
+function typedAnswerForm(q, kind) {
   const input = h("input", {
     class: "answer", type: "text", autocomplete: "off", autocapitalize: "words", spellcheck: "false",
     "aria-label": "Your answer", placeholder: `Type a ${kind}...`,
   });
   const hint = h("div", { class: "sub hint" });
+  const submit = h("button", { class: "next", type: "submit" }, "Check ✅");
   let done = false;
   let misses = 0;
   const form = h("form", {
     class: "answer-form",
     onsubmit: (e) => {
       e.preventDefault();
-      if (done) return;
+      if (done) { letterTrain(); return; }
       const { status, word } = checkLetterAnswer(input.value, q.letter, q.category);
       if (status === "empty") return;
       if (status === "right") {
         done = true;
         input.value = word;
-        input.disabled = true;
+        input.readOnly = true;
         input.classList.add("right");
+        submit.textContent = "Next ➡️";
         hint.textContent = "";
         streak += 1;
         celebrate(`${word} starts with ${q.letter}!`);
-        result.replaceChildren(nextButton(letterTrain));
         return;
       }
       streak = 0;
@@ -371,7 +377,7 @@ function typedAnswerForm(q, kind, result) {
       say(hint.textContent);
       input.select();
     },
-  }, input, h("button", { class: "next", type: "submit" }, "Check ✅"), hint);
+  }, input, submit, hint);
   return { form, input };
 }
 

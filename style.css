@@ -90,7 +90,7 @@ main {
 .prompt { font-size: 1.4rem; font-weight: 900; margin: 4px 0 2px; line-height: 1.2; }
 .prompt span { white-space: nowrap; }
 .sub { font-size: 1rem; opacity: .7; margin: 4px 0; }
-.giant { font-size: 5rem; font-weight: 900; line-height: 1; margin: 4px 0; }
+.giant { font-size: 4rem; font-weight: 900; line-height: 1; margin: 4px 0; }
 .store-pic {
   display: flex; align-items: center; justify-content: center;
   height: 110px; margin: -2px -4px 6px; border-radius: 16px; overflow: hidden; background: var(--panel);
@@ -122,6 +122,14 @@ main {
 .answer:focus { outline: none; border-color: var(--blue); }
 .answer.right { background: var(--green); border-color: var(--green); color: #fff; }
 .hint { text-align: center; min-height: 1.4em; margin-top: 8px; }
+
+html.typing .tabs, html.typing .streak { display: none; }
+html.typing .giant { font-size: 3rem; }
+html.typing .card { padding: 8px 12px; }
+html.typing .card .prompt { font-size: 1.2rem; }
+html.typing .answer-form { grid-template-columns: 1fr auto; gap: 8px; }
+html.typing .answer-form .next { width: auto; margin-top: 0; padding: 0 14px; font-size: 1.2rem; }
+html.typing .answer-form .hint { grid-column: 1 / -1; margin-top: 0; }
 .next {width: 100%; margin-top: 12px; min-height: 64px; border-radius: 18px; background: var(--blue); color: #fff; font-size: 1.4rem; font-weight: 900; box-shadow: var(--shadow); }
 
 .letters { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
