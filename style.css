@@ -27,6 +27,18 @@ html, body {
 
 body { min-height: 100dvh; }
 
+/* iOS ignores the manifest's portrait lock, so turn the page back upright when the phone turns. */
+@media (orientation: landscape) and (max-height: 600px) and (pointer: coarse) {
+  html[data-turn] body {
+    position: fixed; top: 0; left: 0;
+    width: 100dvh; height: 100dvw; min-height: 0;
+    overflow-x: hidden; overflow-y: auto;
+    transform-origin: top left;
+  }
+  html[data-turn="left"] body { transform: rotate(-90deg) translateX(-100%); }
+  html[data-turn="right"] body { transform: rotate(90deg) translateY(-100%); }
+}
+
 button {
   font: inherit;
   color: inherit;

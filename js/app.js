@@ -8,6 +8,17 @@ import {
 const byName = (a, b) => a.name.localeCompare(b.name);
 const STORES_AZ = [...STORES].sort(byName);
 
+// iOS has no orientation lock; CSS turns the page back, this says which way the phone went.
+function trackTurn() {
+  const angle = window.orientation ?? screen.orientation?.angle;
+  const turn = angle === 90 ? "left" : angle === -90 || angle === 270 ? "right" : null;
+  if (turn) document.documentElement.dataset.turn = turn;
+  else delete document.documentElement.dataset.turn;
+}
+trackTurn();
+addEventListener("orientationchange", trackTurn);
+addEventListener("resize", trackTurn);
+
 const app = document.getElementById("app");
 const titleEl = document.getElementById("title");
 const COLORS = ["#ff5ca8", "#3fa9f5", "#36c275", "#ff8a3d", "#8f6bff", "#ffb800", "#00b8a9"];
