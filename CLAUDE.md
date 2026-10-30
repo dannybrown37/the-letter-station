@@ -12,7 +12,7 @@ Learning game for the user's son (autistic). Special interests: letters, The Lea
 - Respect `prefers-reduced-motion` (already handled in CSS).
 - User-entered text (video titles/questions) goes in via `textContent` only — the `h()` helper never uses innerHTML. Keep it that way.
 - Don't hardcode YouTube video IDs or image URLs from memory; they rot or are wrong. Parent pastes videos; store images come from Wikipedia at runtime.
-- Exception: video packs (`SING_VIDEOS` in data.js) are OK if each ID was found by search and checked with YouTube oEmbed (`https://www.youtube.com/oembed?format=json&url=...` → 200). Rows whose thumbnail is YouTube's 120x90 placeholder are hidden at runtime (`isDeadThumb`).
+- Exception: video packs (`SING_VIDEOS` in data.js) are OK if each ID was found by search and checked with YouTube oEmbed (`https://www.youtube.com/oembed?format=json&url=...` → 200). Rows whose thumbnail is YouTube's 120x90 placeholder are hidden at runtime (`isDeadThumb`). Same rule for `LBB_CHARACTERS[].video`: the character picture is that official LBB video's thumbnail (`x` = crop focus %); falls back to the emoji.
 
 ## Layout
 

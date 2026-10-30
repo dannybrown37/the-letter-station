@@ -540,12 +540,22 @@ function playVideo(v) {
   qText.textContent = bank[0];
 }
 
+function friendPic(c, cls) {
+  const box = h("span", { class: `friend-pic ${cls}` }, c.emoji);
+  const img = h("img", {
+    src: `https://i.ytimg.com/vi/${c.video}/mqdefault.jpg`, alt: c.name,
+    style: { objectPosition: `${c.x}% 50%` },
+    onload: () => { if (!isDeadThumb(img.naturalWidth, img.naturalHeight)) box.replaceChildren(img); },
+  });
+  return box;
+}
+
 function lbbFriends(selected) {
   const c = selected ?? LBB_CHARACTERS[0];
   const blurb = `This is ${c.name}! ${c.name} is ${c.what}. ${c.facts.join(" ")}`;
   screen("LBB Friends ⭐",
     h("div", { class: "card" },
-      h("div", { class: "giant friend-face", style: { background: c.color } }, c.emoji),
+      h("div", { class: "friend-face", style: { background: c.color } }, friendPic(c, "giant")),
       h("div", { class: "store-name", style: brandText(c.color) }, c.name),
       h("div", { class: "sub" }, `is ${c.what}`),
       h("div", { class: "chips" }, c.facts.map((f) => h("button", { class: "chip", onclick: () => speak(f) }, f))),
@@ -555,7 +565,7 @@ function lbbFriends(selected) {
         class: f === c ? "friend on" : "friend",
         style: f === c ? { background: f.color } : {},
         onclick: () => lbbFriends(f),
-      }, h("span", { class: "big" }, f.emoji), f.name))));
+      }, friendPic(f, "big"), f.name))));
   if (selected) say(blurb);
 }
 

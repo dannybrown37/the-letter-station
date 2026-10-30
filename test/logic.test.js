@@ -193,5 +193,7 @@ test("LBB_CHARACTERS profiles are complete and unique", () => {
     for (const k of ["id", "name", "emoji", "color", "what"]) assert.ok(c[k], `${c.id ?? "?"} missing ${k}`);
     assert.match(c.color, /^#[0-9a-f]{6}$/i);
     assert.ok(c.facts.length >= 2, `${c.id} needs facts`);
+    assert.equal(parseYouTubeId(c.video), c.video, `${c.id} needs a picture video id`);
+    assert.ok(c.x >= 0 && c.x <= 100, `${c.id} needs picture focus x%`);
   }
 });
