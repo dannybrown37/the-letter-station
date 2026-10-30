@@ -188,8 +188,7 @@ const GAMES = [
   { id: "storeFinder", label: "Where Is It?", emoji: "🗺️", color: "#ff5ca8", run: storeFinder },
   { id: "lbbFriends", label: "Little Baby Bum Friends", emoji: "⭐", color: "#00b8a9", run: lbbFriends, wide: true },
   { id: "singFriends", label: "Sing Friends", emoji: "🎤", color: "#d46bff", run: singFriends, wide: true },
-  { id: "guessWho", label: "Sing: Guess Who?", emoji: "❓", color: "#e05a5a", run: guessWho, wide: true },
-  { id: "lbbGuessWho", label: "LBB: Guess Who?", emoji: "❓", color: "#3fa9f5", run: lbbGuessWho, wide: true },
+  { id: "guessWho", label: "Guess Who?", emoji: "❓", color: "#e05a5a", run: guessWho, wide: true },
   { id: "videoStation", label: "Video Station", emoji: "📺", color: "#ffb800", run: videoStation, wide: true },
 ];
 
@@ -575,11 +574,17 @@ function friendsScreen(title, list, selected) {
   if (selected) say(blurb);
 }
 
-function guessWho() { guessWhoScreen("Guess Who? 🎤", SING_CHARACTERS); }
-function lbbGuessWho() { guessWhoScreen("Guess Who? ⭐", LBB_CHARACTERS); }
+const GUESS_WHO_SETS = [
+  ["mix", "🎲 Mixed", null],
+  ["sing", "🎤 Sing", SING_CHARACTERS],
+  ["lbb", "⭐ LBB", LBB_CHARACTERS],
+];
+let guessWhoSet = "mix";
 
-function guessWhoScreen(title, list) {
-  const next = () => guessWhoScreen(title, list);
+// Mixed picks one show per round so clues like "I am a pig" never match two answers.
+function guessWho() {
+  const list = GUESS_WHO_SETS.find(([k]) => k === guessWhoSet)[2]
+    ?? pick([SING_CHARACTERS, LBB_CHARACTERS]);
   const q = makeCharacterQuestion(list);
   const prompt = `${q.clue} Who am I?`;
   const result = h("div");
@@ -588,10 +593,16 @@ function guessWhoScreen(title, list) {
     label: (c) => c.name,
     isRight: (c) => c === q.answer,
     rightLine: (c) => `It's ${c.name}!`,
-    onRight: () => result.replaceChildren(nextButton(next)),
+    onRight: () => result.replaceChildren(nextButton(guessWho)),
   });
   [...btns.children].forEach((b, i) => { b.classList.add("guess"); b.prepend(friendPic(q.choices[i], "big")); });
-  screen(title,
+  screen("Guess Who? ❓",
+    h("div", { class: "tabs" },
+      GUESS_WHO_SETS.map(([k, lbl]) =>
+        h("button", {
+          class: guessWhoSet === k ? "on" : "",
+          onclick: () => { guessWhoSet = k; guessWho(); },
+        }, lbl))),
     h("div", { class: "card" },
       h("div", { class: "prompt" }, `“${q.clue}”`),
       h("div", { class: "sub" }, "Who am I?"),
