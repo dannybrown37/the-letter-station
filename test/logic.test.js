@@ -198,9 +198,11 @@ for (const [label, list] of [["LBB_CHARACTERS", LBB_CHARACTERS], ["SING_CHARACTE
   }
 });
 
-for (const seed of [1, 2, 3, 42, 99, 1234]) {
-  test(`makeCharacterQuestion seed ${seed}: clue belongs to the answer, 4 different friends`, () => {
-    const q = makeCharacterQuestion(SING_CHARACTERS, seeded(seed));
+const CHARACTER_LISTS = [["SING_CHARACTERS", SING_CHARACTERS], ["LBB_CHARACTERS", LBB_CHARACTERS]];
+
+for (const [label, list] of CHARACTER_LISTS) for (const seed of [1, 2, 3, 42, 99, 1234]) {
+  test(`makeCharacterQuestion ${label} seed ${seed}: clue belongs to the answer, 4 different friends`, () => {
+    const q = makeCharacterQuestion(list, seeded(seed));
     assert.equal(q.choices.length, 4);
     assert.equal(new Set(q.choices.map((c) => c.id)).size, 4);
     assert.ok(q.choices.includes(q.answer));
@@ -208,12 +210,18 @@ for (const seed of [1, 2, 3, 42, 99, 1234]) {
   });
 }
 
-test("SING_CHARACTERS clues are unique and never say a name", () => {
-  const all = SING_CHARACTERS.flatMap((c) => c.clues);
+const nameWords = (c) => c.name.split(" ").filter((w) => /^[A-Z][a-z]{2,}/.test(w));
+
+for (const [label, list] of CHARACTER_LISTS) test(`${label} clues are unique and never give away the answer's name`, () => {
+  const all = list.flatMap((c) => c.clues);
   assert.equal(new Set(all).size, all.length);
-  const names = SING_CHARACTERS.flatMap((c) => c.name.split(" "));
-  for (const c of SING_CHARACTERS) {
+  for (const c of list) {
     assert.ok(c.clues.length >= 3, `${c.id} needs clues`);
-    for (const clue of c.clues) for (const n of names) assert.ok(!clue.includes(n), `${c.id} clue "${clue}" says ${n}`);
+    for (const clue of c.clues) for (const n of nameWords(c)) assert.ok(!clue.includes(n), `${c.id} clue "${clue}" says ${n}`);
   }
+});
+
+test("LBB_CHARACTERS has the friends he asked for", () => {
+  const names = LBB_CHARACTERS.map((c) => c.name);
+  for (const n of ["Jacus", "Pig", "Daisy", "William"]) assert.ok(names.includes(n), `missing ${n}`);
 });

@@ -41,12 +41,12 @@ Flow: `location.hash` → `route()` → `GAMES[i].run()` → `screen(title, ...n
 | storeFinder | pick store → 50-state grid lights up; pick state → its stores |
 | lbbFriends | Little Baby Bum character profiles (`LBB_CHARACTERS` in data.js); tap a friend → facts, tap a fact to hear it |
 | singFriends | Same screen (`friendsScreen`) for Sing/Sing 2 characters (`SING_CHARACTERS`); pictures reuse `SING_VIDEOS` thumbnails |
-| guessWho | "I am a koala. Who am I?" → 4 Sing character picture choices. Clues are `SING_CHARACTERS[].clues` (first person, unique, never say a name; tests enforce) |
+| guessWho / lbbGuessWho | `guessWhoScreen(title, list)`: "I am a koala. Who am I?" → 4 character picture choices, Sing or LBB. Clues are `SING_CHARACTERS[].clues` (first person, unique, never say a name; tests enforce) |
 | videoStation | parent adds YouTube links (localStorage) → embed (youtube-nocookie) + thinking questions |
 
 To add a game: write a `run` function using `screen()`, add an entry to `GAMES`. Home tiles are a 2-col grid; `wide: true` tiles span full width. Keep the half-width tiles an even count.
 
-`LBB_CHARACTERS` only holds facts found in official sources (Moonbug, streaming episode lists, toy line). Jacus, Daisy, Timberly were left out because their roles couldn't be confirmed. Wikipedia's LBB voice-cast list looked vandalized (Oct 2026); don't trust it.
+`LBB_CHARACTERS` only holds facts found in official sources (Moonbug, streaming episode lists, toy line, official video titles). Jacus, Pig and Daisy the cow were added Oct 2026 at the son's request (confirmed by official video titles). William the chicken's name comes from the son; no official source found. Timberly is still left out. Wikipedia's LBB voice-cast list looked vandalized (Oct 2026); don't trust it.
 
 ## Data rules
 

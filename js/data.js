@@ -226,28 +226,51 @@ export const VIDEO_CHANNELS = [
 ];
 
 // Little Baby Bum friends. Only facts found in official listings (Moonbug, Disney+/Prime episode
-// titles, Little Tikes toy line) as of Oct 2026; unsure characters (Jacus, Daisy, Timberly) left out.
+// titles, Little Tikes toy line) as of Oct 2026. Timberly left out (role unconfirmed).
+// Jacus, Pig, Daisy (the cow) confirmed by official LBB video titles; William the chicken's name came
+// from the user's son (no official source found), picture from the official Rooster Song video.
 // Pictures: `video` = official LBB YouTube video whose thumbnail shows the character (oEmbed-checked,
 // Oct 2026); `x` = where the character sits across the thumbnail, in %, for the round crop.
 export const LBB_CHARACTERS = [
   { id: "mia", video: "ah4fw2u0Wdc", x: 50, name: "Mia", emoji: "👧", color: "#ff5ca8", what: "a girl who loves to sing",
-    facts: ["Mia is the star of Little Baby Bum.", "She is Baby Max's big sister.", "She wears a striped shirt and headphones.", "She turns everyday things into songs!"] },
+    facts: ["Mia is the star of Little Baby Bum.", "She is Baby Max's big sister.", "She wears a striped shirt and headphones.", "She turns everyday things into songs!"],
+    clues: ["I am the star of the show!", "I am a big sister.", "I wear a striped shirt and headphones."] },
   { id: "max", video: "IQud98pehEs", x: 62, name: "Baby Max", emoji: "👶", color: "#3fa9f5", what: "Mia's baby brother",
-    facts: ["Baby Max is Mia's little brother.", "He loves big hugs with Twinkle.", "He has his own nursery rhyme channel."] },
+    facts: ["Baby Max is Mia's little brother.", "He loves big hugs with Twinkle.", "He has his own nursery rhyme channel."],
+    clues: ["I am Mia's little brother.", "I love big hugs with a star.", "I am the littlest one in the family."] },
   { id: "twinkle", video: "xs7rW19sbIc", x: 5, name: "Twinkle", emoji: "⭐", color: "#ffb800", what: "a friendly star",
-    facts: ["Twinkle is a little star with a smiley face.", "Twinkle comes from the song Twinkle Twinkle Little Star.", "Twinkle tells sleepy stories at bedtime."] },
+    facts: ["Twinkle is a little star with a smiley face.", "Twinkle comes from the song Twinkle Twinkle Little Star.", "Twinkle tells sleepy stories at bedtime."],
+    clues: ["I am a little star with a smiley face.", "I shine up in the sky at night.", "I tell sleepy stories at bedtime."] },
   { id: "baabaa", video: "i0bW1SfkOvc", x: 28, name: "Baa Baa", emoji: "🐑", color: "#8f6bff", what: "a fluffy sheep",
-    facts: ["Baa Baa is a sheep.", "Baa Baa comes from the song Baa Baa Black Sheep.", "Sheep say baa!"] },
+    facts: ["Baa Baa is a sheep.", "Baa Baa comes from the song Baa Baa Black Sheep.", "Sheep say baa!"],
+    clues: ["I am a fluffy sheep.", "I have three bags full of wool!", "I say baa!"] },
   { id: "buster", video: "dDwZ9k23ZwU", x: 76, name: "Buster the Bus", emoji: "🚌", color: "#ff8a3d", what: "a big bus",
-    facts: ["Buster is a bus.", "His wheels go round and round!", "He drives friends all around town."] },
+    facts: ["Buster is a bus.", "His wheels go round and round!", "He drives friends all around town."],
+    clues: ["I am a big bus.", "My wheels go round and round!", "I drive friends all around town."] },
   { id: "incy", video: "Q1tsPkWAKpo", x: 8, name: "Incy Wincy", emoji: "🕷️", color: "#36c275", what: "a little spider",
-    facts: ["Incy Wincy is a spider.", "Americans call him the Itsy Bitsy Spider.", "He climbs up the water spout!"] },
+    facts: ["Incy Wincy is a spider.", "Americans call him the Itsy Bitsy Spider.", "He climbs up the water spout!"],
+    clues: ["I am a little spider.", "I climb up the water spout!", "The rain washes me out!"] },
   { id: "tootson", video: "QYd0Hez_Obg", x: 80, name: "Tootson", emoji: "🚂", color: "#00b8a9", what: "a choo-choo train",
-    facts: ["Tootson is a train.", "Trains go choo choo!", "Tootson rides along the train tracks."] },
+    facts: ["Tootson is a train.", "Trains go choo choo!", "Tootson rides along the train tracks."],
+    clues: ["I am a train.", "I go choo choo!", "I ride along the train tracks."] },
   { id: "baobao", video: "OU5hbMAZWRE", x: 38, name: "Bao Bao", emoji: "🐼", color: "#7a8ca8", what: "a baby panda",
-    facts: ["Bao Bao is a baby panda.", "Pandas are black and white.", "Pandas love to eat bamboo."] },
+    facts: ["Bao Bao is a baby panda.", "Pandas are black and white.", "Pandas love to eat bamboo."],
+    clues: ["I am a baby panda.", "I am black and white.", "I love to eat bamboo."] },
   { id: "family", video: "DmBPFrm2nJE", x: 22, name: "Mommy & Daddy", emoji: "👨‍👩‍👧‍👦", color: "#e05a5a", what: "Mia and Max's parents",
-    facts: ["Mommy and Daddy take care of Mia and Max.", "Daddy has a music box for bedtime.", "They sing songs with the kids!"] },
+    facts: ["Mommy and Daddy take care of Mia and Max.", "Daddy has a music box for bedtime.", "They sing songs with the kids!"],
+    clues: ["We take care of Mia and Max.", "We are the mom and dad.", "We have a music box for bedtime."] },
+  { id: "jacus", video: "Z_LKzpeO8_4", x: 100, name: "Jacus", emoji: "👦", color: "#c9a227", what: "Mia's friend",
+    facts: ["Jacus is a boy.", "He is one of Mia's friends.", "He plays soccer with Mia.", "He sings 10 Little Babies with Mia."],
+    clues: ["I am a boy who is Mia's friend.", "I play soccer with Mia.", "I sing 10 Little Babies with Mia."] },
+  { id: "pig", video: "UdRKxGL7VGg", x: 62, name: "Pig", emoji: "🐷", color: "#ff7eb6", what: "a pink pig",
+    facts: ["Pig is a pink pig.", "Pig eats an apple. Crunch!", "Pigs say oink oink!"],
+    clues: ["I am a pink pig.", "I eat a red apple. Crunch!", "I say oink oink!"] },
+  { id: "daisy", video: "ZyowYHG1oVk", x: 15, name: "Daisy", emoji: "🐮", color: "#d46bff", what: "a cow",
+    facts: ["Daisy is a cow.", "She wears a flower crown.", "There is a song that spells her name: D, A, I, S, Y!", "Cows say moo!"],
+    clues: ["I am a cow.", "I wear a flower crown.", "I say moo!"] },
+  { id: "william", video: "WPIyYWUTqXs", x: 88, name: "William", emoji: "🐔", color: "#e8743b", what: "a chicken",
+    facts: ["William is a chicken.", "He has a bright red comb on his head.", "He says cock-a-doodle-doo!"],
+    clues: ["I am a chicken.", "I have a red comb on my head.", "I say cock-a-doodle-doo!"] },
 ];
 
 // Sing / Sing 2 characters. Pictures reuse SING_VIDEOS thumbnails (already oEmbed-checked); `x` = crop focus %.

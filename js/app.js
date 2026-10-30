@@ -189,6 +189,7 @@ const GAMES = [
   { id: "lbbFriends", label: "Little Baby Bum Friends", emoji: "⭐", color: "#00b8a9", run: lbbFriends, wide: true },
   { id: "singFriends", label: "Sing Friends", emoji: "🎤", color: "#d46bff", run: singFriends, wide: true },
   { id: "guessWho", label: "Sing: Guess Who?", emoji: "❓", color: "#e05a5a", run: guessWho, wide: true },
+  { id: "lbbGuessWho", label: "LBB: Guess Who?", emoji: "❓", color: "#3fa9f5", run: lbbGuessWho, wide: true },
   { id: "videoStation", label: "Video Station", emoji: "📺", color: "#ffb800", run: videoStation, wide: true },
 ];
 
@@ -574,8 +575,12 @@ function friendsScreen(title, list, selected) {
   if (selected) say(blurb);
 }
 
-function guessWho() {
-  const q = makeCharacterQuestion(SING_CHARACTERS);
+function guessWho() { guessWhoScreen("Guess Who? 🎤", SING_CHARACTERS); }
+function lbbGuessWho() { guessWhoScreen("Guess Who? ⭐", LBB_CHARACTERS); }
+
+function guessWhoScreen(title, list) {
+  const next = () => guessWhoScreen(title, list);
+  const q = makeCharacterQuestion(list);
   const prompt = `${q.clue} Who am I?`;
   const result = h("div");
   const btns = choiceButtons(q.choices, {
@@ -583,10 +588,10 @@ function guessWho() {
     label: (c) => c.name,
     isRight: (c) => c === q.answer,
     rightLine: (c) => `It's ${c.name}!`,
-    onRight: () => result.replaceChildren(nextButton(guessWho)),
+    onRight: () => result.replaceChildren(nextButton(next)),
   });
   [...btns.children].forEach((b, i) => { b.classList.add("guess"); b.prepend(friendPic(q.choices[i], "big")); });
-  screen("Guess Who? 🎤",
+  screen(title,
     h("div", { class: "card" },
       h("div", { class: "prompt" }, `“${q.clue}”`),
       h("div", { class: "sub" }, "Who am I?"),
