@@ -41,7 +41,7 @@ Flow: `location.hash` → `route()` → `GAMES[i].run()` → `screen(title, ...n
 | storeFinder | pick store → 50-state grid lights up; pick state → its stores |
 | lbbFriends | Little Baby Bum character profiles (`LBB_CHARACTERS` in data.js); tap a friend → facts, tap a fact to hear it |
 | singFriends | Same screen (`friendsScreen`) for Sing/Sing 2 characters (`SING_CHARACTERS`); pictures reuse `SING_VIDEOS` thumbnails |
-| guessWho | "I am a koala. Who am I?" → 4 character picture choices. Tabs: Mixed / Sing / LBB (`GUESS_WHO_SETS`); Mixed picks one show per round so clues never match two answers. Clues are `SING_CHARACTERS[].clues` (first person, unique, never say a name; tests enforce) |
+| guessWho | "I am a koala. Who am I?" → 4 character picture choices. Tabs: Mixed / Sing / LBB (`GUESS_WHO_SETS`); Mixed (`makeMixedCharacterQuestion`) puts both shows in every round's choices, but never a same-emoji friend from the other show (LBB Pig vs Rosita), since clues are only unique within a show. Clues are `SING_CHARACTERS[].clues` (first person, unique, never say a name; tests enforce) |
 | videoStation | parent adds YouTube links (localStorage) → embed (youtube-nocookie) + thinking questions |
 
 To add a game: write a `run` function using `screen()`, add an entry to `GAMES`. Home tiles are a 2-col grid; `wide: true` tiles span full width. Keep the half-width tiles an even count.

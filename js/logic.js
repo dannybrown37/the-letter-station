@@ -67,6 +67,17 @@ export function makeCharacterQuestion(list, rng = Math.random) {
   return { answer, clue: pick(answer.clues, rng), choices: shuffle([answer, ...others], rng) };
 }
 
+// Clues are only unique within one show, so a same-animal friend from another show
+// (LBB Pig vs Sing's Rosita) would make "I say oink oink!" ambiguous.
+export function makeMixedCharacterQuestion(lists, rng = Math.random) {
+  const home = pick(lists, rng);
+  const answer = pick(home, rng);
+  const fromOthers = lists.filter((l) => l !== home).flat().filter((c) => c.emoji !== answer.emoji);
+  const otherShow = pick(fromOthers, rng);
+  const rest = shuffle([...home, ...fromOthers].filter((c) => c !== answer && c !== otherShow), rng).slice(0, 2);
+  return { answer, clue: pick(answer.clues, rng), choices: shuffle([answer, otherShow, ...rest], rng) };
+}
+
 export const storesInState =(code) => STORES.filter((s) => s.states.includes(code));
 
 const YT_HOSTS = new Set(["youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com", "youtu.be", "www.youtube-nocookie.com"]);

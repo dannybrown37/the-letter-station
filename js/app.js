@@ -2,7 +2,7 @@ import { STATES, STORES, KINDS, CATEGORY_INFO, VIDEO_QUESTIONS, VIDEO_CHANNELS, 
 import {
   ALPHABET, pick, shuffle, wordsForLetter, makeLetterQuestion,
   makeStoreQuestion, makeYesNoQuestion, storesInState, parseYouTubeId,
-  checkLetterAnswer, firstLetter, isDeadThumb, mergeVideos, makeCharacterQuestion,
+  checkLetterAnswer, firstLetter, isDeadThumb, mergeVideos, makeCharacterQuestion, makeMixedCharacterQuestion,
 } from "./logic.js";
 
 const byName = (a, b) => a.name.localeCompare(b.name);
@@ -581,11 +581,9 @@ const GUESS_WHO_SETS = [
 ];
 let guessWhoSet = "mix";
 
-// Mixed picks one show per round so clues like "I am a pig" never match two answers.
 function guessWho() {
-  const list = GUESS_WHO_SETS.find(([k]) => k === guessWhoSet)[2]
-    ?? pick([SING_CHARACTERS, LBB_CHARACTERS]);
-  const q = makeCharacterQuestion(list);
+  const list = GUESS_WHO_SETS.find(([k]) => k === guessWhoSet)[2];
+  const q = list ? makeCharacterQuestion(list) : makeMixedCharacterQuestion([SING_CHARACTERS, LBB_CHARACTERS]);
   const prompt = `${q.clue} Who am I?`;
   const result = h("div");
   const btns = choiceButtons(q.choices, {

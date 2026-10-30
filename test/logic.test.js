@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {
   firstLetter, wordsForLetter, playableLetters, makeLetterQuestion,
   makeStoreQuestion, makeYesNoQuestion, storesInState, parseYouTubeId, shuffle, checkLetterAnswer,
-  isDeadThumb, mergeVideos, makeCharacterQuestion,
+  isDeadThumb, mergeVideos, makeCharacterQuestion, makeMixedCharacterQuestion,
 } from "../js/logic.js";
 import { STATES, STORES, WORDS, KINDS, SING_VIDEOS, LBB_CHARACTERS, SING_CHARACTERS } from "../js/data.js";
 
@@ -210,7 +210,30 @@ for (const [label, list] of CHARACTER_LISTS) for (const seed of [1, 2, 3, 42, 99
   });
 }
 
-const nameWords = (c) => c.name.split(" ").filter((w) => /^[A-Z][a-z]{2,}/.test(w));
+for (const seed of [1, 2, 3, 42, 99, 1234, 5, 77, 31337, 8]) {
+  test(`makeMixedCharacterQuestion seed ${seed}: both shows in choices, no same-animal friend from the other show`, () => {
+    const q = makeMixedCharacterQuestion([SING_CHARACTERS, LBB_CHARACTERS], seeded(seed));
+    assert.equal(q.choices.length, 4);
+    assert.equal(new Set(q.choices).size, 4);
+    assert.ok(q.choices.includes(q.answer));
+    assert.ok(q.answer.clues.includes(q.clue));
+    assert.ok(q.choices.some((c) => SING_CHARACTERS.includes(c)));
+    assert.ok(q.choices.some((c) => LBB_CHARACTERS.includes(c)));
+    const answerList = SING_CHARACTERS.includes(q.answer) ? SING_CHARACTERS : LBB_CHARACTERS;
+    for (const c of q.choices) if (!answerList.includes(c)) assert.notEqual(c.emoji, q.answer.emoji, `${c.id} looks like ${q.answer.id}`);
+  });
+}
+
+test("makeMixedCharacterQuestion never pairs LBB Pig with a Sing pig", () => {
+  const pig = LBB_CHARACTERS.find((c) => c.emoji === "🐷");
+  const rng = seeded(7);
+  for (let i = 0; i < 300; i++) {
+    const q = makeMixedCharacterQuestion([SING_CHARACTERS, LBB_CHARACTERS], rng);
+    if (q.answer === pig) assert.ok(!q.choices.some((c) => SING_CHARACTERS.includes(c) && c.emoji === "🐷"));
+  }
+});
+
+const nameWords =(c) => c.name.split(" ").filter((w) => /^[A-Z][a-z]{2,}/.test(w));
 
 for (const [label, list] of CHARACTER_LISTS) test(`${label} clues are unique and never give away the answer's name`, () => {
   const all = list.flatMap((c) => c.clues);
