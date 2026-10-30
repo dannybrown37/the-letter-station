@@ -40,6 +40,7 @@ Flow: `location.hash` → `route()` → `GAMES[i].run()` → `screen(title, ...n
 | letterExplorer | letter grid → words per category, tap to hear |
 | storeFinder | pick store → 50-state grid lights up; pick state → its stores |
 | lbbFriends | Little Baby Bum character profiles (`LBB_CHARACTERS` in data.js); tap a friend → facts, tap a fact to hear it |
+| singFriends | Same screen (`friendsScreen`) for Sing/Sing 2 characters (`SING_CHARACTERS`); pictures reuse `SING_VIDEOS` thumbnails |
 | videoStation | parent adds YouTube links (localStorage) → embed (youtube-nocookie) + thinking questions |
 
 To add a game: write a `run` function using `screen()`, add an entry to `GAMES`. Home tiles are a 2-col grid; `wide: true` tiles span full width. Keep the half-width tiles an even count.

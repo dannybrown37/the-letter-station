@@ -249,3 +249,29 @@ export const LBB_CHARACTERS = [
   { id: "family", video: "DmBPFrm2nJE", x: 22, name: "Mommy & Daddy", emoji: "👨‍👩‍👧‍👦", color: "#e05a5a", what: "Mia and Max's parents",
     facts: ["Mommy and Daddy take care of Mia and Max.", "Daddy has a music box for bedtime.", "They sing songs with the kids!"] },
 ];
+
+// Sing / Sing 2 characters. Pictures reuse SING_VIDEOS thumbnails (already oEmbed-checked); `x` = crop focus %.
+export const SING_CHARACTERS = [
+  { id: "buster", video: "ukl9qBvRXfc", x: 58, name: "Buster Moon", emoji: "🐨", color: "#3fa9f5", what: "a koala who runs a theater",
+    facts: ["Buster Moon is a koala.", "He owns the Moon Theater.", "He puts on a big singing contest!", "Buster never gives up."] },
+  { id: "rosita", video: "Z2xooz6844k", x: 30, name: "Rosita", emoji: "🐷", color: "#ff5ca8", what: "a pig who loves to sing",
+    facts: ["Rosita is a pig.", "She is a mom with 25 piglets!", "She sings and dances with Gunter.", "She sings Shake It Off."] },
+  { id: "gunter", video: "WDAlAqy9WUM", x: 60, name: "Gunter", emoji: "🐷", color: "#ffb800", what: "a pig who loves to dance",
+    facts: ["Gunter is a pig.", "He loves to dance!", "He wears shiny, sparkly clothes.", "He dances with Rosita."] },
+  { id: "johnny", video: "10khF4-1rbU", x: 52, name: "Johnny", emoji: "🦍", color: "#36c275", what: "a gorilla who sings and plays piano",
+    facts: ["Johnny is a gorilla.", "He plays the piano.", "He sings I'm Still Standing.", "In Sing 2, Nooshy teaches him to dance."] },
+  { id: "ash", video: "engSFG20kaA", x: 62, name: "Ash", emoji: "🦔", color: "#e05a5a", what: "a porcupine who plays rock music",
+    facts: ["Ash is a porcupine.", "She plays the guitar.", "She writes her own song, Set It All Free.", "She helps Clay sing again."] },
+  { id: "meena", video: "lzJV7k-LiC4", x: 48, name: "Meena", emoji: "🐘", color: "#8f6bff", what: "a shy elephant with a big voice",
+    facts: ["Meena is an elephant.", "She is very shy.", "She has a big, beautiful voice!", "She learns to be brave and sing."] },
+  { id: "mike", video: "UK-vT8iapA8", x: 35, name: "Mike", emoji: "🐭", color: "#7a8ca8", what: "a little mouse with a big voice",
+    facts: ["Mike is a mouse.", "He plays the saxophone.", "He sings My Way.", "He is small, but very proud!"] },
+  { id: "crawly", video: "_htRK1tXEwo", x: 45, name: "Miss Crawly", emoji: "🦎", color: "#00b8a9", what: "Buster's helper",
+    facts: ["Miss Crawly is an iguana.", "She works for Buster at the theater.", "She has a glass eye.", "She is old, but she is tough!"] },
+  { id: "porsha", video: "By2FHeLg_HU", x: 50, name: "Porsha", emoji: "🐺", color: "#ff8a3d", what: "a wolf who wants to be a star",
+    facts: ["Porsha is a wolf.", "She is in Sing 2.", "Her dad is Jimmy Crystal.", "She sings Girl on Fire."] },
+  { id: "clay", video: "PwNAeCZArew", x: 85, name: "Clay Calloway", emoji: "🦁", color: "#c9a227", what: "a lion rock star",
+    facts: ["Clay Calloway is a lion.", "He is a famous rock star.", "He stopped singing for a long time.", "Ash helps him sing again!"] },
+  { id: "nooshy", video: "hEKDk3lkd7s", x: 35, name: "Nooshy", emoji: "🐱", color: "#d46bff", what: "a lynx who loves to dance",
+    facts: ["Nooshy is a lynx.", "She is in Sing 2.", "She is a great street dancer.", "She teaches Johnny to dance."] },
+];

@@ -1,4 +1,4 @@
-import { STATES, STORES, KINDS, CATEGORY_INFO, VIDEO_QUESTIONS, VIDEO_CHANNELS, SING_VIDEOS, LBB_CHARACTERS } from "./data.js";
+import { STATES, STORES, KINDS, CATEGORY_INFO, VIDEO_QUESTIONS, VIDEO_CHANNELS, SING_VIDEOS, LBB_CHARACTERS, SING_CHARACTERS } from "./data.js";
 import {
   ALPHABET, pick, shuffle, wordsForLetter, makeLetterQuestion,
   makeStoreQuestion, makeYesNoQuestion, storesInState, parseYouTubeId,
@@ -187,6 +187,7 @@ const GAMES = [
   { id: "letterExplorer", label: "ABC Explorer", emoji: "🔤", color: "#8f6bff", run: letterExplorer },
   { id: "storeFinder", label: "Where Is It?", emoji: "🗺️", color: "#ff5ca8", run: storeFinder },
   { id: "lbbFriends", label: "Little Baby Bum Friends", emoji: "⭐", color: "#00b8a9", run: lbbFriends, wide: true },
+  { id: "singFriends", label: "Sing Friends", emoji: "🎤", color: "#d46bff", run: singFriends, wide: true },
   { id: "videoStation", label: "Video Station", emoji: "📺", color: "#ffb800", run: videoStation, wide: true },
 ];
 
@@ -550,21 +551,24 @@ function friendPic(c, cls) {
   return box;
 }
 
-function lbbFriends(selected) {
-  const c = selected ?? LBB_CHARACTERS[0];
+function lbbFriends() { friendsScreen("LBB Friends ⭐", LBB_CHARACTERS); }
+function singFriends() { friendsScreen("Sing Friends 🎤", SING_CHARACTERS); }
+
+function friendsScreen(title, list, selected) {
+  const c = selected ?? list[0];
   const blurb = `This is ${c.name}! ${c.name} is ${c.what}. ${c.facts.join(" ")}`;
-  screen("LBB Friends ⭐",
+  screen(title,
     h("div", { class: "card" },
       h("div", { class: "friend-face", style: { background: c.color } }, friendPic(c, "giant")),
       h("div", { class: "store-name", style: brandText(c.color) }, c.name),
       h("div", { class: "sub" }, `is ${c.what}`),
       h("div", { class: "chips" }, c.facts.map((f) => h("button", { class: "chip", onclick: () => speak(f) }, f))),
       sayButton(blurb)),
-    h("div", { class: "friend-grid" }, LBB_CHARACTERS.map((f) =>
+    h("div", { class: "friend-grid" }, list.map((f) =>
       h("button", {
         class: f === c ? "friend on" : "friend",
         style: f === c ? { background: f.color } : {},
-        onclick: () => lbbFriends(f),
+        onclick: () => friendsScreen(title, list, f),
       }, friendPic(f, "big"), f.name))));
   if (selected) say(blurb);
 }
