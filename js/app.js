@@ -1,4 +1,4 @@
-import { STATES, STORES, KINDS, CATEGORY_INFO, VIDEO_QUESTIONS, VIDEO_CHANNELS, SING_VIDEOS } from "./data.js";
+import { STATES, STORES, KINDS, CATEGORY_INFO, VIDEO_QUESTIONS, VIDEO_CHANNELS, SING_VIDEOS, LBB_CHARACTERS } from "./data.js";
 import {
   ALPHABET, pick, shuffle, wordsForLetter, makeLetterQuestion,
   makeStoreQuestion, makeYesNoQuestion, storesInState, parseYouTubeId,
@@ -181,12 +181,13 @@ function screen(title, ...kids) {
 
 // ---------- screens ----------
 const GAMES = [
-  { id: "storeHunt", label: "Store Hunt", emoji: "🛒", color: "#36c275", run: storeHunt },
+  { id: "storeHunt", label: "Store Hunt", emoji: "🛒", color: "#36c275", run: storeHunt, wide: true },
   { id: "yesNo", label: "Yes or No?", emoji: "🤔", color: "#ff8a3d", run: yesNo },
   { id: "letterTrain", label: "Letter Train", emoji: "🚂", color: "#3fa9f5", run: letterTrain },
   { id: "letterExplorer", label: "ABC Explorer", emoji: "🔤", color: "#8f6bff", run: letterExplorer },
   { id: "storeFinder", label: "Where Is It?", emoji: "🗺️", color: "#ff5ca8", run: storeFinder },
-  { id: "videoStation", label: "Video Station", emoji: "📺", color: "#ffb800", run: videoStation },
+  { id: "lbbFriends", label: "Little Baby Bum Friends", emoji: "⭐", color: "#00b8a9", run: lbbFriends, wide: true },
+  { id: "videoStation", label: "Video Station", emoji: "📺", color: "#ffb800", run: videoStation, wide: true },
 ];
 
 function home() {
@@ -195,8 +196,8 @@ function home() {
       h("div", { class: "prompt" }, "Hi, friend! 👋"),
       h("div", { class: "sub" }, "What do you want to play?")),
     h("div", { class: "tiles" },
-      GAMES.map((g, i) => h("button", {
-        class: i === 0 || i === GAMES.length - 1 ? "tile wide" : "tile",
+      GAMES.map((g) => h("button", {
+        class: g.wide ? "tile wide" : "tile",
         style: { background: g.color },
         onclick: () => { say(g.label); location.hash = g.id; },
       }, h("span", { class: "big" }, g.emoji), g.label))));
@@ -537,6 +538,25 @@ function playVideo(v) {
         h("button", { class: "choice yes", style: { fontSize: "1.3rem", minHeight: "72px" }, onclick: () => { celebrate("Great thinking!"); i += 1; show(); } }, "I answered! ⭐"))),
     h("button", { class: "next", onclick: () => { location.hash = "videoStation"; } }, "📺 More videos"));
   qText.textContent = bank[0];
+}
+
+function lbbFriends(selected) {
+  const c = selected ?? LBB_CHARACTERS[0];
+  const blurb = `This is ${c.name}! ${c.name} is ${c.what}. ${c.facts.join(" ")}`;
+  screen("LBB Friends ⭐",
+    h("div", { class: "card" },
+      h("div", { class: "giant friend-face", style: { background: c.color } }, c.emoji),
+      h("div", { class: "store-name", style: brandText(c.color) }, c.name),
+      h("div", { class: "sub" }, `is ${c.what}`),
+      h("div", { class: "chips" }, c.facts.map((f) => h("button", { class: "chip", onclick: () => speak(f) }, f))),
+      sayButton(blurb)),
+    h("div", { class: "friend-grid" }, LBB_CHARACTERS.map((f) =>
+      h("button", {
+        class: f === c ? "friend on" : "friend",
+        style: f === c ? { background: f.color } : {},
+        onclick: () => lbbFriends(f),
+      }, h("span", { class: "big" }, f.emoji), f.name))));
+  if (selected) say(blurb);
 }
 
 // ---------- routing ----------

@@ -39,9 +39,12 @@ Flow: `location.hash` → `route()` → `GAMES[i].run()` → `screen(title, ...n
 | letterTrain | "Which {category} starts with L?" category tabs or Mix |
 | letterExplorer | letter grid → words per category, tap to hear |
 | storeFinder | pick store → 50-state grid lights up; pick state → its stores |
+| lbbFriends | Little Baby Bum character profiles (`LBB_CHARACTERS` in data.js); tap a friend → facts, tap a fact to hear it |
 | videoStation | parent adds YouTube links (localStorage) → embed (youtube-nocookie) + thinking questions |
 
-To add a game: write a `run` function using `screen()`, add an entry to `GAMES`. Home tiles are a 2-col grid; first and last tiles span full width. Keep the count working with that layout.
+To add a game: write a `run` function using `screen()`, add an entry to `GAMES`. Home tiles are a 2-col grid; `wide: true` tiles span full width. Keep the half-width tiles an even count.
+
+`LBB_CHARACTERS` only holds facts found in official sources (Moonbug, streaming episode lists, toy line). Jacus, Daisy, Timberly were left out because their roles couldn't be confirmed. Wikipedia's LBB voice-cast list looked vandalized (Oct 2026); don't trust it.
 
 ## Data rules
 

@@ -5,7 +5,7 @@ import {
   makeStoreQuestion, makeYesNoQuestion, storesInState, parseYouTubeId, shuffle, checkLetterAnswer,
   isDeadThumb, mergeVideos,
 } from "../js/logic.js";
-import { STATES, STORES, WORDS, KINDS, SING_VIDEOS } from "../js/data.js";
+import { STATES, STORES, WORDS, KINDS, SING_VIDEOS, LBB_CHARACTERS } from "../js/data.js";
 
 const seeded = (seed) => () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
 
@@ -184,4 +184,14 @@ test("data: SING_VIDEOS have valid, unique YouTube ids and titles", () => {
     assert.deepEqual(v.questions, []);
   }
   assert.equal(new Set(SING_VIDEOS.map((v) => v.id)).size, SING_VIDEOS.length);
+});
+
+test("LBB_CHARACTERS profiles are complete and unique", () => {
+  assert.ok(LBB_CHARACTERS.length >= 6);
+  assert.equal(new Set(LBB_CHARACTERS.map((c) => c.id)).size, LBB_CHARACTERS.length);
+  for (const c of LBB_CHARACTERS) {
+    for (const k of ["id", "name", "emoji", "color", "what"]) assert.ok(c[k], `${c.id ?? "?"} missing ${k}`);
+    assert.match(c.color, /^#[0-9a-f]{6}$/i);
+    assert.ok(c.facts.length >= 2, `${c.id} needs facts`);
+  }
 });

@@ -224,3 +224,26 @@ export const VIDEO_CHANNELS = [
   { name: "Little Baby Bum", emoji: "⭐", search: "Little Baby Bum" },
   { name: "Sing Movie Songs", emoji: "🎤", search: "Sing movie songs" },
 ];
+
+// Little Baby Bum friends. Only facts found in official listings (Moonbug, Disney+/Prime episode
+// titles, Little Tikes toy line) as of Oct 2026; unsure characters (Jacus, Daisy, Timberly) left out.
+export const LBB_CHARACTERS = [
+  { id: "mia", name: "Mia", emoji: "👧", color: "#ff5ca8", what: "a girl who loves to sing",
+    facts: ["Mia is the star of Little Baby Bum.", "She is Baby Max's big sister.", "She wears a striped shirt and headphones.", "She turns everyday things into songs!"] },
+  { id: "max", name: "Baby Max", emoji: "👶", color: "#3fa9f5", what: "Mia's baby brother",
+    facts: ["Baby Max is Mia's little brother.", "He loves big hugs with Twinkle.", "He has his own nursery rhyme channel."] },
+  { id: "twinkle", name: "Twinkle", emoji: "⭐", color: "#ffb800", what: "a friendly star",
+    facts: ["Twinkle is a little star with a smiley face.", "Twinkle comes from the song Twinkle Twinkle Little Star.", "Twinkle tells sleepy stories at bedtime."] },
+  { id: "baabaa", name: "Baa Baa", emoji: "🐑", color: "#8f6bff", what: "a fluffy sheep",
+    facts: ["Baa Baa is a sheep.", "Baa Baa comes from the song Baa Baa Black Sheep.", "Sheep say baa!"] },
+  { id: "buster", name: "Buster the Bus", emoji: "🚌", color: "#ff8a3d", what: "a big bus",
+    facts: ["Buster is a bus.", "His wheels go round and round!", "He drives friends all around town."] },
+  { id: "incy", name: "Incy Wincy", emoji: "🕷️", color: "#36c275", what: "a little spider",
+    facts: ["Incy Wincy is a spider.", "Americans call him the Itsy Bitsy Spider.", "He climbs up the water spout!"] },
+  { id: "tootson", name: "Tootson", emoji: "🚂", color: "#00b8a9", what: "a choo-choo train",
+    facts: ["Tootson is a train.", "Trains go choo choo!", "Tootson rides along the train tracks."] },
+  { id: "baobao", name: "Bao Bao", emoji: "🐼", color: "#7a8ca8", what: "a baby panda",
+    facts: ["Bao Bao is a baby panda.", "Pandas are black and white.", "Pandas love to eat bamboo."] },
+  { id: "family", name: "Mommy & Daddy", emoji: "👨‍👩‍👧‍👦", color: "#e05a5a", what: "Mia and Max's parents",
+    facts: ["Mommy and Daddy take care of Mia and Max.", "Daddy has a music box for bedtime.", "They sing songs with the kids!"] },
+];

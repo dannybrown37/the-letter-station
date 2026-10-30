@@ -83,6 +83,16 @@ main {
 .tile .big { font-size: 2.4rem; line-height: 1; }
 .tile.wide { grid-column: span 2; min-height: 80px; flex-direction: row; gap: 14px; }
 
+.giant.friend-face { width: 96px; height: 96px; margin: 4px auto 8px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 3.2rem; }
+.friend-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.friend {
+  display: flex; flex-direction: column; align-items: center; gap: 4px; min-height: 84px; padding: 8px 4px;
+  background: var(--card); color: var(--ink); border-radius: var(--radius); box-shadow: var(--shadow);
+  font-weight: 800; font-size: .9rem; line-height: 1.1;
+}
+.friend .big { font-size: 2rem; line-height: 1; }
+.friend.on { color: #fff; }
+
 .card {
   background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
   padding: 12px 14px; margin-bottom: 12px; text-align: center;
