@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {
   firstLetter, wordsForLetter, playableLetters, makeLetterQuestion,
   makeStoreQuestion, makeYesNoQuestion, storesInState, parseYouTubeId, shuffle, checkLetterAnswer,
-  isDeadThumb, mergeVideos,
+  isDeadThumb, mergeVideos, makeCharacterQuestion,
 } from "../js/logic.js";
 import { STATES, STORES, WORDS, KINDS, SING_VIDEOS, LBB_CHARACTERS, SING_CHARACTERS } from "../js/data.js";
 
@@ -195,5 +195,25 @@ for (const [label, list] of [["LBB_CHARACTERS", LBB_CHARACTERS], ["SING_CHARACTE
     assert.ok(c.facts.length >= 2, `${c.id} needs facts`);
     assert.equal(parseYouTubeId(c.video), c.video, `${c.id} needs a picture video id`);
     assert.ok(c.x >= 0 && c.x <= 100, `${c.id} needs picture focus x%`);
+  }
+});
+
+for (const seed of [1, 2, 3, 42, 99, 1234]) {
+  test(`makeCharacterQuestion seed ${seed}: clue belongs to the answer, 4 different friends`, () => {
+    const q = makeCharacterQuestion(SING_CHARACTERS, seeded(seed));
+    assert.equal(q.choices.length, 4);
+    assert.equal(new Set(q.choices.map((c) => c.id)).size, 4);
+    assert.ok(q.choices.includes(q.answer));
+    assert.ok(q.answer.clues.includes(q.clue));
+  });
+}
+
+test("SING_CHARACTERS clues are unique and never say a name", () => {
+  const all = SING_CHARACTERS.flatMap((c) => c.clues);
+  assert.equal(new Set(all).size, all.length);
+  const names = SING_CHARACTERS.flatMap((c) => c.name.split(" "));
+  for (const c of SING_CHARACTERS) {
+    assert.ok(c.clues.length >= 3, `${c.id} needs clues`);
+    for (const clue of c.clues) for (const n of names) assert.ok(!clue.includes(n), `${c.id} clue "${clue}" says ${n}`);
   }
 });

@@ -127,6 +127,8 @@ main {
 }
 .choice.right { background: var(--green); color: #fff; animation: bump .5s; }
 .choice.wrong { background: #5a2a38; animation: shake .4s; opacity: .6; }
+.choice.guess { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.choice.guess .friend-pic.big { width: 72px; height: 72px; }
 .choice.yes { background: var(--green); color: #fff; font-size: 2rem; min-height: 110px; }
 .choice.no { background: var(--orange); color: #fff; font-size: 2rem; min-height: 110px; }
 

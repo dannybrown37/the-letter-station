@@ -61,7 +61,13 @@ export function makeYesNoQuestion(rng = Math.random) {
   return { store, state, answer: store.states.includes(state) };
 }
 
-export const storesInState = (code) => STORES.filter((s) => s.states.includes(code));
+export function makeCharacterQuestion(list, rng = Math.random) {
+  const answer = pick(list, rng);
+  const others = shuffle(list.filter((c) => c !== answer), rng).slice(0, 3);
+  return { answer, clue: pick(answer.clues, rng), choices: shuffle([answer, ...others], rng) };
+}
+
+export const storesInState =(code) => STORES.filter((s) => s.states.includes(code));
 
 const YT_HOSTS = new Set(["youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com", "youtu.be", "www.youtube-nocookie.com"]);
 const YT_ID = /^[\w-]{11}$/;

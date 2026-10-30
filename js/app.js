@@ -2,7 +2,7 @@ import { STATES, STORES, KINDS, CATEGORY_INFO, VIDEO_QUESTIONS, VIDEO_CHANNELS, 
 import {
   ALPHABET, pick, shuffle, wordsForLetter, makeLetterQuestion,
   makeStoreQuestion, makeYesNoQuestion, storesInState, parseYouTubeId,
-  checkLetterAnswer, firstLetter, isDeadThumb, mergeVideos,
+  checkLetterAnswer, firstLetter, isDeadThumb, mergeVideos, makeCharacterQuestion,
 } from "./logic.js";
 
 const byName = (a, b) => a.name.localeCompare(b.name);
@@ -188,6 +188,7 @@ const GAMES = [
   { id: "storeFinder", label: "Where Is It?", emoji: "🗺️", color: "#ff5ca8", run: storeFinder },
   { id: "lbbFriends", label: "Little Baby Bum Friends", emoji: "⭐", color: "#00b8a9", run: lbbFriends, wide: true },
   { id: "singFriends", label: "Sing Friends", emoji: "🎤", color: "#d46bff", run: singFriends, wide: true },
+  { id: "guessWho", label: "Sing: Guess Who?", emoji: "❓", color: "#e05a5a", run: guessWho, wide: true },
   { id: "videoStation", label: "Video Station", emoji: "📺", color: "#ffb800", run: videoStation, wide: true },
 ];
 
@@ -571,6 +572,29 @@ function friendsScreen(title, list, selected) {
         onclick: () => friendsScreen(title, list, f),
       }, friendPic(f, "big"), f.name))));
   if (selected) say(blurb);
+}
+
+function guessWho() {
+  const q = makeCharacterQuestion(SING_CHARACTERS);
+  const prompt = `${q.clue} Who am I?`;
+  const result = h("div");
+  const btns = choiceButtons(q.choices, {
+    cols: 2,
+    label: (c) => c.name,
+    isRight: (c) => c === q.answer,
+    rightLine: (c) => `It's ${c.name}!`,
+    onRight: () => result.replaceChildren(nextButton(guessWho)),
+  });
+  [...btns.children].forEach((b, i) => { b.classList.add("guess"); b.prepend(friendPic(q.choices[i], "big")); });
+  screen("Guess Who? 🎤",
+    h("div", { class: "card" },
+      h("div", { class: "prompt" }, `“${q.clue}”`),
+      h("div", { class: "sub" }, "Who am I?"),
+      sayButton(prompt),
+      streakLine()),
+    btns,
+    result);
+  say(prompt);
 }
 
 // ---------- routing ----------
