@@ -309,3 +309,14 @@ export const SING_CHARACTERS = [
     facts: ["Nooshy is a lynx.", "She is in Sing 2.", "She is a great street dancer.", "She teaches Johnny to dance."],
     clues: ["I am a lynx.", "I am a great street dancer.", "I teach a gorilla to dance."] },
 ];
+
+// The Learning Station (Melbourne, FL kids' band). Facts from Wikipedia and learningstationmusic.com (Oct 2026).
+// Picture: official "Tony Chestnut" cartoon thumbnail; their hats are labeled DON, LAURIE, JAN.
+export const LEARNING_STATION_CHARACTERS = [
+  { id: "don", video: "9tD68-MC5ZI", x: 4, zoom: 1.8, name: "Don", emoji: "🎸", color: "#3fa9f5", what: "a singer in The Learning Station",
+    facts: ["Don sings songs in The Learning Station.", "Don and Laurie started the band in Connecticut.", "The band moved to Melbourne, Florida!", "Don and Laurie are married."] },
+  { id: "laurie", video: "9tD68-MC5ZI", x: 30, zoom: 1.8, name: "Laurie", emoji: "🎤", color: "#ff5ca8", what: "a singer in The Learning Station",
+    facts: ["Laurie sings songs in The Learning Station.", "Laurie went to school to learn how to teach little kids.", "Laurie helps make songs that teach.", "Laurie is married to Don."] },
+  { id: "jan", video: "9tD68-MC5ZI", x: 70, zoom: 1.8, name: "Jan", emoji: "🎶", color: "#36c275", what: "a singer in The Learning Station",
+    facts: ["Jan sings songs in The Learning Station.", "Jan is Don and Laurie's friend.", "Jan joined the band in Florida.", "Jan and Don made music in a recording studio."] },
+];

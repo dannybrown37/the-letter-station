@@ -5,7 +5,7 @@ import {
   makeStoreQuestion, makeYesNoQuestion, storesInState, parseYouTubeId, shuffle, checkLetterAnswer,
   isDeadThumb, mergeVideos, makeCharacterQuestion, makeMixedCharacterQuestion,
 } from "../js/logic.js";
-import { STATES, STORES, WORDS, KINDS, SING_VIDEOS, LBB_CHARACTERS, SING_CHARACTERS } from "../js/data.js";
+import { STATES, STORES, WORDS, KINDS, SING_VIDEOS, LBB_CHARACTERS, SING_CHARACTERS, LEARNING_STATION_CHARACTERS } from "../js/data.js";
 
 const seeded = (seed) => () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
 
@@ -186,8 +186,8 @@ test("data: SING_VIDEOS have valid, unique YouTube ids and titles", () => {
   assert.equal(new Set(SING_VIDEOS.map((v) => v.id)).size, SING_VIDEOS.length);
 });
 
-for (const [label, list] of [["LBB_CHARACTERS", LBB_CHARACTERS], ["SING_CHARACTERS", SING_CHARACTERS]]) test(`${label} profiles are complete and unique`, () => {
-  assert.ok(list.length >= 6);
+for (const [label, list, min] of [["LBB_CHARACTERS", LBB_CHARACTERS, 6], ["SING_CHARACTERS", SING_CHARACTERS, 6], ["LEARNING_STATION_CHARACTERS", LEARNING_STATION_CHARACTERS, 3]]) test(`${label} profiles are complete and unique`, () => {
+  assert.ok(list.length >= min);
   assert.equal(new Set(list.map((c) => c.id)).size, list.length);
   for (const c of list) {
     for (const k of ["id", "name", "emoji", "color", "what"]) assert.ok(c[k], `${c.id ?? "?"} missing ${k}`);
@@ -242,6 +242,10 @@ for (const [label, list] of CHARACTER_LISTS) test(`${label} clues are unique and
     assert.ok(c.clues.length >= 3, `${c.id} needs clues`);
     for (const clue of c.clues) for (const n of nameWords(c)) assert.ok(!clue.includes(n), `${c.id} clue "${clue}" says ${n}`);
   }
+});
+
+test("LEARNING_STATION_CHARACTERS has Don, Laurie and Jan", () => {
+  assert.deepEqual(LEARNING_STATION_CHARACTERS.map((c) => c.name), ["Don", "Laurie", "Jan"]);
 });
 
 test("LBB_CHARACTERS has the friends he asked for", () => {

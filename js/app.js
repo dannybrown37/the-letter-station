@@ -1,4 +1,4 @@
-import { STATES, STORES, KINDS, CATEGORY_INFO, VIDEO_QUESTIONS, VIDEO_CHANNELS, SING_VIDEOS, LBB_CHARACTERS, SING_CHARACTERS } from "./data.js";
+import { STATES, STORES, KINDS, CATEGORY_INFO, VIDEO_QUESTIONS, VIDEO_CHANNELS, SING_VIDEOS, LBB_CHARACTERS, SING_CHARACTERS, LEARNING_STATION_CHARACTERS } from "./data.js";
 import {
   ALPHABET, pick, shuffle, wordsForLetter, makeLetterQuestion,
   makeStoreQuestion, makeYesNoQuestion, storesInState, parseYouTubeId,
@@ -186,8 +186,7 @@ const GAMES = [
   { id: "letterTrain", label: "Letter Train", emoji: "🚂", color: "#3fa9f5", run: letterTrain },
   { id: "letterExplorer", label: "ABC Explorer", emoji: "🔤", color: "#8f6bff", run: letterExplorer },
   { id: "storeFinder", label: "Where Is It?", emoji: "🗺️", color: "#ff5ca8", run: storeFinder },
-  { id: "lbbFriends", label: "Little Baby Bum Friends", emoji: "⭐", color: "#00b8a9", run: lbbFriends, wide: true },
-  { id: "singFriends", label: "Sing Friends", emoji: "🎤", color: "#d46bff", run: singFriends, wide: true },
+  { id: "friends", label: "Friends", emoji: "⭐", color: "#00b8a9", run: () => friendsScreen(), wide: true },
   { id: "guessWho", label: "Guess Who?", emoji: "❓", color: "#e05a5a", run: guessWho, wide: true },
   { id: "videoStation", label: "Video Station", emoji: "📺", color: "#ffb800", run: videoStation, wide: true },
 ];
@@ -546,19 +545,32 @@ function friendPic(c, cls) {
   const box = h("span", { class: `friend-pic ${cls}` }, c.emoji);
   const img = h("img", {
     src: `https://i.ytimg.com/vi/${c.video}/mqdefault.jpg`, alt: c.name,
-    style: { objectPosition: `${c.x}% 50%` },
+    style: c.zoom
+      ? { objectPosition: `${c.x}% 50%`, transform: `scale(${c.zoom})`, transformOrigin: `${c.x}% 15%` }
+      : { objectPosition: `${c.x}% 50%` },
     onload: () => { if (!isDeadThumb(img.naturalWidth, img.naturalHeight)) box.replaceChildren(img); },
   });
   return box;
 }
 
-function lbbFriends() { friendsScreen("LBB Friends ⭐", LBB_CHARACTERS); }
-function singFriends() { friendsScreen("Sing Friends 🎤", SING_CHARACTERS); }
+const FRIEND_SETS = [
+  ["lbb", "⭐ LBB", LBB_CHARACTERS],
+  ["sing", "🎤 Sing", SING_CHARACTERS],
+  ["ls", "🎵 Learning Station", LEARNING_STATION_CHARACTERS],
+];
+let friendSet = "lbb";
 
-function friendsScreen(title, list, selected) {
+function friendsScreen(selected) {
+  const list = FRIEND_SETS.find(([k]) => k === friendSet)[2];
   const c = selected ?? list[0];
   const blurb = `This is ${c.name}! ${c.name} is ${c.what}. ${c.facts.join(" ")}`;
-  screen(title,
+  screen("Friends ⭐",
+    h("div", { class: "tabs" },
+      FRIEND_SETS.map(([k, lbl]) =>
+        h("button", {
+          class: friendSet === k ? "on" : "",
+          onclick: () => { friendSet = k; friendsScreen(); },
+        }, lbl))),
     h("div", { class: "card" },
       h("div", { class: "friend-face", style: { background: c.color } }, friendPic(c, "giant")),
       h("div", { class: "store-name", style: brandText(c.color) }, c.name),
@@ -569,7 +581,7 @@ function friendsScreen(title, list, selected) {
       h("button", {
         class: f === c ? "friend on" : "friend",
         style: f === c ? { background: f.color } : {},
-        onclick: () => friendsScreen(title, list, f),
+        onclick: () => friendsScreen(f),
       }, friendPic(f, "big"), f.name))));
   if (selected) say(blurb);
 }
