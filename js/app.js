@@ -590,12 +590,13 @@ const GUESS_WHO_SETS = [
   ["mix", "🎲 Mixed", null],
   ["sing", "🎤 Sing", SING_CHARACTERS],
   ["lbb", "⭐ LBB", LBB_CHARACTERS],
+  ["ls", "🎵 Station", LEARNING_STATION_CHARACTERS],
 ];
 let guessWhoSet = "mix";
 
 function guessWho() {
   const list = GUESS_WHO_SETS.find(([k]) => k === guessWhoSet)[2];
-  const q = list ? makeCharacterQuestion(list) : makeMixedCharacterQuestion([SING_CHARACTERS, LBB_CHARACTERS]);
+  const q = list ? makeCharacterQuestion(list) : makeMixedCharacterQuestion([SING_CHARACTERS, LBB_CHARACTERS, LEARNING_STATION_CHARACTERS]);
   const prompt = `${q.clue} Who am I?`;
   const result = h("div");
   const btns = choiceButtons(q.choices, {

@@ -314,9 +314,12 @@ export const SING_CHARACTERS = [
 // Picture: official "Tony Chestnut" cartoon thumbnail; their hats are labeled DON, LAURIE, JAN.
 export const LEARNING_STATION_CHARACTERS = [
   { id: "don", video: "9tD68-MC5ZI", x: 4, zoom: 1.8, name: "Don", emoji: "🎸", color: "#3fa9f5", what: "a singer in The Learning Station",
-    facts: ["Don sings songs in The Learning Station.", "Don and Laurie started the band in Connecticut.", "The band moved to Melbourne, Florida!", "Don and Laurie are married."] },
+    facts: ["Don sings songs in The Learning Station.", "Don and Laurie started the band in Connecticut.", "The band moved to Melbourne, Florida!", "Don and Laurie are married."],
+    clues: ["I am married to Laurie.", "My wife and I started a kids' band.", "I made music in a recording studio with Jan."] },
   { id: "laurie", video: "9tD68-MC5ZI", x: 30, zoom: 1.8, name: "Laurie", emoji: "🎤", color: "#ff5ca8", what: "a singer in The Learning Station",
-    facts: ["Laurie sings songs in The Learning Station.", "Laurie went to school to learn how to teach little kids.", "Laurie helps make songs that teach.", "Laurie is married to Don."] },
+    facts: ["Laurie sings songs in The Learning Station.", "Laurie went to school to learn how to teach little kids.", "Laurie helps make songs that teach.", "Laurie is married to Don."],
+    clues: ["I am married to Don.", "My husband and I started a kids' band.", "I went to school to learn how to teach little kids."] },
   { id: "jan", video: "9tD68-MC5ZI", x: 70, zoom: 1.8, name: "Jan", emoji: "🎶", color: "#36c275", what: "a singer in The Learning Station",
-    facts: ["Jan sings songs in The Learning Station.", "Jan is Don and Laurie's friend.", "Jan joined the band in Florida.", "Jan and Don made music in a recording studio."] },
+    facts: ["Jan sings songs in The Learning Station.", "Jan is Don and Laurie's friend.", "Jan joined the band in Florida.", "Jan and Don made music in a recording studio."],
+    clues: ["I am Don and Laurie's friend.", "I joined Don and Laurie's band in Florida.", "I made music in a recording studio with Don."] },
 ];

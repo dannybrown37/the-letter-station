@@ -198,31 +198,47 @@ for (const [label, list, min] of [["LBB_CHARACTERS", LBB_CHARACTERS, 6], ["SING_
   }
 });
 
-const CHARACTER_LISTS = [["SING_CHARACTERS", SING_CHARACTERS], ["LBB_CHARACTERS", LBB_CHARACTERS]];
+const CHARACTER_LISTS = [["SING_CHARACTERS", SING_CHARACTERS], ["LBB_CHARACTERS", LBB_CHARACTERS], ["LEARNING_STATION_CHARACTERS", LEARNING_STATION_CHARACTERS]];
+const ALL_SHOWS = CHARACTER_LISTS.map(([, l]) => l);
 
 for (const [label, list] of CHARACTER_LISTS) for (const seed of [1, 2, 3, 42, 99, 1234]) {
-  test(`makeCharacterQuestion ${label} seed ${seed}: clue belongs to the answer, 4 different friends`, () => {
+  test(`makeCharacterQuestion ${label} seed ${seed}: clue belongs to the answer, up to 4 different friends`, () => {
     const q = makeCharacterQuestion(list, seeded(seed));
-    assert.equal(q.choices.length, 4);
-    assert.equal(new Set(q.choices.map((c) => c.id)).size, 4);
+    const n = Math.min(4, list.length);
+    assert.equal(q.choices.length, n);
+    assert.equal(new Set(q.choices.map((c) => c.id)).size, n);
     assert.ok(q.choices.includes(q.answer));
     assert.ok(q.answer.clues.includes(q.clue));
   });
 }
 
 for (const seed of [1, 2, 3, 42, 99, 1234, 5, 77, 31337, 8]) {
-  test(`makeMixedCharacterQuestion seed ${seed}: both shows in choices, no same-animal friend from the other show`, () => {
-    const q = makeMixedCharacterQuestion([SING_CHARACTERS, LBB_CHARACTERS], seeded(seed));
+  test(`makeMixedCharacterQuestion seed ${seed}: another show in choices, no same-animal friend from another show`, () => {
+    const q = makeMixedCharacterQuestion(ALL_SHOWS, seeded(seed));
     assert.equal(q.choices.length, 4);
     assert.equal(new Set(q.choices).size, 4);
     assert.ok(q.choices.includes(q.answer));
     assert.ok(q.answer.clues.includes(q.clue));
-    assert.ok(q.choices.some((c) => SING_CHARACTERS.includes(c)));
-    assert.ok(q.choices.some((c) => LBB_CHARACTERS.includes(c)));
-    const answerList = SING_CHARACTERS.includes(q.answer) ? SING_CHARACTERS : LBB_CHARACTERS;
+    const answerList = ALL_SHOWS.find((l) => l.includes(q.answer));
+    assert.ok(q.choices.some((c) => !answerList.includes(c)));
     for (const c of q.choices) if (!answerList.includes(c)) assert.notEqual(c.emoji, q.answer.emoji, `${c.id} looks like ${q.answer.id}`);
   });
 }
+
+test("makeMixedCharacterQuestion can ask about every show", () => {
+  const rng = seeded(3);
+  const asked = new Set();
+  for (let i = 0; i < 200; i++) {
+    const { answer } = makeMixedCharacterQuestion(ALL_SHOWS, rng);
+    asked.add(ALL_SHOWS.find((l) => l.includes(answer)));
+  }
+  assert.equal(asked.size, ALL_SHOWS.length);
+});
+
+test("clues are unique across all shows (Mixed puts them together)", () => {
+  const all = ALL_SHOWS.flat().flatMap((c) => c.clues);
+  assert.equal(new Set(all).size, all.length);
+});
 
 test("makeMixedCharacterQuestion never pairs LBB Pig with a Sing pig", () => {
   const pig = LBB_CHARACTERS.find((c) => c.emoji === "🐷");
