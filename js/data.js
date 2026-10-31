@@ -67,6 +67,7 @@ export const STORES = [
   { name: "4 Rivers BBQ", emoji: "🍖", color: "#8b4513", kind: "restaurant", states: ["FL"] },
   { name: "Mission BBQ", wiki: "Mission_BBQ", emoji: "🇺🇸", color: "#b22234", kind: "restaurant", states: ["AZ", "CO", "CT", "DE", "FL", "IL", "IN", "IA", "KY", "MD", "MI", "NV", "NJ", "NY", "NC", "OH", "OK", "PA", "SC", "TN", "UT", "VA", "WV", "WI"] },
   { name: "R&R BBQ", emoji: "🍖", color: "#5d2e0c", kind: "restaurant", states: ["UT", "ID"] },
+  { name: "Cafe Rio", wiki: "Cafe_Rio", emoji: "🌯", color: "#c8102e", kind: "restaurant", states: ["UT", "AZ", "CA", "CO", "ID", "MD", "MT", "NV", "VA", "WA", "WY"] },
   { name: "Culver's", wiki: "Culver's", emoji: "🍦", color: "#005daa", kind: "restaurant", states: ["AL", "AZ", "AR", "CO", "FL", "GA", "ID", "IL", "IN", "IA", "KS", "KY", "MI", "MN", "MO", "NE", "NC", "ND", "OH", "SC", "SD", "TN", "TX", "UT", "WI", "WY"] },
 ];
 
