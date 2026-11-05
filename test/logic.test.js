@@ -472,3 +472,23 @@ for (const [name, raw, expected] of [
     assert.deepEqual(loadKeyboard(raw), expected);
   });
 }
+
+test("STATE_TILES places every state once, no two on the same tile", async () => {
+  const { STATE_TILES } = await import("../js/data.js");
+  assert.deepEqual(Object.keys(STATE_TILES).sort(), Object.keys(STATES).sort());
+  const spots = Object.values(STATE_TILES).map(([c, r]) => `${c},${r}`);
+  assert.equal(new Set(spots).size, spots.length);
+  assert.ok(Object.values(STATE_TILES).every(([c, r]) => c >= 0 && c < 11 && r >= 0 && r < 8));
+});
+
+for (const [seed, letter] of [[1, undefined], [7, "B"], [42, "Q"]]) {
+  test(`makeBalloonRound seed ${seed}: target appears, letters valid`, async () => {
+    const { makeBalloonRound } = await import("../js/logic.js");
+    const r = makeBalloonRound(seeded(seed), letter);
+    if (letter) assert.equal(r.target, letter);
+    assert.equal(r.balloons.length, 8);
+    const hits = r.balloons.filter((b) => b === r.target).length;
+    assert.ok(hits >= 2 && hits <= 3);
+    assert.ok(r.balloons.every((b) => ALPHABET.includes(b)));
+  });
+}

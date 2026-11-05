@@ -1,9 +1,9 @@
-import { BIG_NUMBERS, STATES, STORES, KINDS, CATEGORY_INFO, VIDEO_QUESTIONS, VIDEO_CHANNELS, SING_VIDEOS, LBB_CHARACTERS, SING_CHARACTERS, LEARNING_STATION_CHARACTERS } from "./data.js";
+import { BIG_NUMBERS, STATE_TILES, STATES, STORES, KINDS, CATEGORY_INFO, VIDEO_QUESTIONS, VIDEO_CHANNELS, SING_VIDEOS, LBB_CHARACTERS, SING_CHARACTERS, LEARNING_STATION_CHARACTERS } from "./data.js";
 import {
   ALPHABET, pick, shuffle, wordsForLetter, makeLetterQuestion,
   makeStoreQuestion, makeYesNoQuestion, storesInState, parseYouTubeId,
   checkLetterAnswer, firstLetter, isDeadThumb, mergeVideos, makeCharacterQuestion, makeMixedCharacterQuestion,
-  bigNumberText, makeBigNumberQuestion,
+  bigNumberText, makeBigNumberQuestion, makeBalloonRound,
 } from "./logic.js";
 import { keyShop } from "./keyshop.js";
 
@@ -33,7 +33,7 @@ function h(tag, props = {}, ...kids) {
   const el = document.createElement(tag);
   for (const [k, v] of Object.entries(props)) {
     if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
-    else if (k === "style") Object.assign(el.style, v);
+    else if (k === "style") for (const [p, val] of Object.entries(v)) p.startsWith("--") ? el.style.setProperty(p, val) : (el.style[p] = val);
     else if (k === "class") el.className = v;
     else if (v !== false) el.setAttribute(k, v === true ? "" : v);
   }
@@ -183,30 +183,52 @@ function screen(title, ...kids) {
 
 // ---------- screens ----------
 const GAMES = [
-  { id: "storeHunt", label: "Store Hunt", emoji: "🛒", color: "#36c275", run: storeHunt, wide: true },
+  { id: "storeHunt", label: "Store Hunt", emoji: "🛒", color: "#2fb36a", run: storeHunt },
   { id: "yesNo", label: "Yes or No?", emoji: "🤔", color: "#ff8a3d", run: yesNo },
+  { id: "storeFinder", label: "Where Is It?", emoji: "🗺️", color: "#ff5ca8", run: storeFinder },
+  { id: "letterPop", label: "Letter Pop", emoji: "🎈", color: "#e94b6a", run: letterPop },
   { id: "letterTrain", label: "Letter Train", emoji: "🚂", color: "#3fa9f5", run: letterTrain },
   { id: "letterExplorer", label: "ABC Explorer", emoji: "🔤", color: "#8f6bff", run: letterExplorer },
-  { id: "storeFinder", label: "Where Is It?", emoji: "🗺️", color: "#ff5ca8", run: storeFinder },
-  { id: "friends", label: "Friends", emoji: "⭐", color: "#00b8a9", run: () => friendsScreen(), wide: true },
-  { id: "guessWho", label: "Guess Who?", emoji: "❓", color: "#e05a5a", run: guessWho, wide: true },
-  { id: "bigNumbers", label: "Big Numbers", emoji: "🔢", color: "#8f6bff", run: bigNumbers, wide: true },
-  { id: "keyShop", label: "Key Shop", emoji: "⌨️", color: "#ff5ca8", run: () => keyShop({ h, screen, say, speak, celebrate, store, audio: () => (audio ??= new AudioContext()) }), wide: true },
-  { id: "videoStation", label: "Video Station", emoji: "📺", color: "#ffb800", run: videoStation, wide: true },
+  { id: "friends", label: "Friends", emoji: "⭐", color: "#00a99b", run: () => friendsScreen() },
+  { id: "guessWho", label: "Guess Who?", emoji: "❓", color: "#d9534f", run: guessWho },
+  { id: "bigNumbers", label: "Big Numbers", emoji: "🔢", color: "#6f5bd9", run: bigNumbers },
+  { id: "keyShop", label: "Key Shop", emoji: "⌨️", color: "#d6408f", run: () => keyShop({ h, screen, say, speak, celebrate, store, audio: () => (audio ??= new AudioContext()) }) },
+  { id: "videoStation", label: "Videos", emoji: "📺", color: "#e8a200", run: videoStation },
+  { id: "surprise", label: "Surprise!", emoji: "🎁", color: "#4a3f8c", run: () => { location.replace("#" + pick(GAMES.filter((g) => g.id !== "surprise" && g.id !== "videoStation")).id); } },
 ];
 
 function home() {
   screen("The Letter Station",
-    h("div", { class: "card" },
-      h("div", { class: "prompt" }, "Hi, friend! 👋"),
-      h("div", { class: "sub" }, "What do you want to play?")),
+    h("div", { class: "hello" },
+      h("span", { class: "wave" }, "👋"),
+      h("div", {}, h("div", { class: "hello-title" }, "Hi, friend!"), h("div", { class: "sub" }, "What do you want to play?"))),
     h("div", { class: "tiles" },
-      GAMES.map((g) => h("button", {
-        class: g.wide ? "tile wide" : "tile",
-        style: { background: g.color },
+      GAMES.map((g, i) => h("button", {
+        class: "tile",
+        style: { "--c": g.color, "--i": i },
         onclick: () => { say(g.label); location.hash = g.id; },
-      }, h("span", { class: "big" }, g.emoji), g.label))));
+      }, h("span", { class: "big" }, g.emoji), h("span", {}, g.label)))));
 }
+
+// Tile map of the US. paint(code) returns a color to light that state, or null.
+function stateMap(paint, { onTap, ring } = {}) {
+  return h("div", { class: "us-map", role: "group", "aria-label": "Map of the states" },
+    Object.entries(STATE_TILES).map(([code, [col, row]]) => {
+      const color = paint(code);
+      return h("button", {
+        class: `us-tile${color ? " on" : ""}${code === ring ? " ring" : ""}`,
+        "aria-label": STATES[code],
+        style: { gridColumn: col + 1, gridRow: row + 1, background: color ?? "", transitionDelay: `${(col + row) * 30}ms` },
+        onclick: () => onTap?.(code),
+      }, code);
+    }));
+}
+
+const strip = (kids, cls = "") => {
+  const el = h("div", { class: `strip ${cls}` }, kids);
+  requestAnimationFrame(() => el.querySelector(".on")?.scrollIntoView({ inline: "center", block: "nearest" }));
+  return el;
+};
 
 // ---------- store pictures (Wikipedia, cached on the device, emoji if none) ----------
 const IMG_CACHE_KEY = "storeImages";
@@ -238,8 +260,10 @@ function kindBadge(s) {
   return h("button", { class: "kind", onclick: () => speak(kindLine(s)) }, `${k.emoji} ${k.label}`);
 }
 
-function storeHeader(s) {
-  return [storePicture(s), h("div", { class: "store-name", style: brandText(s.color) }, s.name), kindBadge(s)];
+function storeHeader(s, ...extra) {
+  return h("div", { class: "store-row" },
+    storePicture(s),
+    h("div", {}, h("div", { class: "store-name", style: brandText(s.color) }, s.name), kindBadge(s), ...extra));
 }
 
 const article = (word) => (/^[AEIOU]/i.test(word) ? "an" : "a");
@@ -249,16 +273,20 @@ const aOrAn = (word) => `${article(word)} ${word}`;
 function footprint(s, highlight) {
   const missing = Object.keys(STATES).filter((c) => !s.states.includes(c));
   if (missing.length === 0) return h("div", { class: "prompt", style: brandText(s.color) }, `${s.name} is in all 50 states! 🎉`);
-  if (s.states.length > 25) {
-    return [
-      h("div", { class: "sub" }, `${s.name} is in ${s.states.length} states. Every state except:`),
-      stateChips(missing, "#9a90ab", highlight),
-    ];
-  }
+  const line = s.states.length > 25
+    ? `${s.name} is in ${s.states.length} states. Not in ${listWords(missing.map((c) => STATES[c]))}.`
+    : `${s.name} is in ${listWords(s.states.map((c) => STATES[c]))}.`;
   return [
-    h("div", { class: "sub" }, `${s.name} is in ${s.states.length} state${s.states.length > 1 ? "s" : ""}:`),
-    stateChips(s.states, s.color, highlight),
+    h("button", { class: "sub map-line", onclick: () => speak(line) }, `${s.name} is in ${s.states.length} state${s.states.length > 1 ? "s" : ""} 🔊`),
+    stateMap((c) => (s.states.includes(c) ? s.color : null), { ring: highlight, onTap: (c) => speak(hasLine(s, c)) }),
   ];
+}
+
+const hasLine = (s, c) => (s.states.includes(c) ? `Yes! ${STATES[c]} has ${s.name}` : `No, ${STATES[c]} doesn't have ${s.name}`);
+
+function showResult(result, ...kids) {
+  result.replaceChildren(...kids);
+  requestAnimationFrame(() => result.scrollIntoView({ behavior: "smooth", block: "end" }));
 }
 
 function storeHunt() {
@@ -279,7 +307,7 @@ function storeHunt() {
       label: (c) => STATES[c],
       isRight: (c) => q.store.states.includes(c) === q.has,
       rightLine: (c) => (q.has ? `${STATES[c]} has ${aOrAn(name)}!` : `${STATES[c]} doesn't have ${aOrAn(name)}!`),
-      onRight: () => result.replaceChildren(h("div", { class: "card" }, footprint(q.store, q.answer)), nextButton(storeHunt)),
+      onRight: () => showResult(result, h("div", { class: "card" }, footprint(q.store, q.answer)), nextButton(storeHunt)),
     }),
     result);
   say(`${kindLine(q.store)} ${prompt}`);
@@ -303,7 +331,7 @@ function yesNo() {
         label: (c) => (c ? "YES 👍" : "NO 👎"),
         isRight: (c) => c === q.answer,
         rightLine: () => (q.answer ? `${stateName} has ${aOrAn(q.store.name)}!` : `There is no ${q.store.name} in ${stateName}.`),
-        onRight: () => result.replaceChildren(h("div", { class: "card" }, footprint(q.store, q.state)), nextButton(yesNo)),
+        onRight: () => showResult(result, h("div", { class: "card" }, footprint(q.store, q.state)), nextButton(yesNo)),
       });
       btns.children[0].classList.add("yes");
       btns.children[1].classList.add("no");
@@ -311,11 +339,6 @@ function yesNo() {
     })(),
     result);
   say(`${kindLine(q.store)} ${prompt}`);
-}
-
-function stateChips(codes, color, highlight) {
-  return h("div", { class: "chips" }, [...codes].sort((a, b) => STATES[a].localeCompare(STATES[b])).map((c) =>
-    h("span", { class: "chip on", style: { background: color, outline: c === highlight ? "4px solid #fff" : "" } }, STATES[c])));
 }
 
 let trainSettings = { category: null, letter: null };
@@ -392,30 +415,37 @@ function letterExplorer(letter) {
     screen("ABC Explorer 🔤",
       h("div", { class: "card" }, h("div", { class: "prompt" }, "Pick a letter!")),
       h("div", { class: "letters" }, ALPHABET.map((l, i) =>
-        h("button", { class: "letter", style: { background: COLORS[i % COLORS.length] }, onclick: () => letterExplorer(l) }, l))));
+        h("button", { class: "letter", style: { backgroundColor: COLORS[i % COLORS.length] }, onclick: () => letterExplorer(l) }, l))));
     say("Pick a letter!");
     return;
   }
   const idx = ALPHABET.indexOf(letter);
-  const sections = Object.entries(CATEGORY_INFO).map(([cat, info]) => {
-    const words = wordsForLetter(letter, cat);
-    return h("div", { class: "card" },
-      h("div", { class: "prompt" }, `${info.emoji} ${info.label}`),
-      words.length
-        ? h("div", { class: "chips" }, words.map((w, i) =>
-          h("button", { class: "chip", onclick: () => speak(w), style: { borderBottom: `4px solid ${COLORS[i % COLORS.length]}` } }, w)))
-        : h("div", { class: "sub" }, `No ${info.label.toLowerCase()} start with ${letter}... yet!`));
-  });
+  const prev = ALPHABET[(idx + 25) % 26];
+  const next = ALPHABET[(idx + 1) % 26];
+  const counts = Object.fromEntries(Object.keys(CATEGORY_INFO).map((c) => [c, wordsForLetter(letter, c).length]));
+  if (!counts[explorerCat]) explorerCat = Object.keys(counts).find((c) => counts[c]) ?? explorerCat;
+  const info = CATEGORY_INFO[explorerCat];
+  const words = wordsForLetter(letter, explorerCat);
   screen(`Letter ${letter}`,
+    h("div", { class: "card compact letter-head" },
+      h("button", { class: "choice", "aria-label": `Letter ${prev}`, onclick: () => letterExplorer(prev) }, `⬅️ ${prev}`),
+      h("button", { class: "giant letter-big", style: { color: COLORS[idx % COLORS.length] }, onclick: () => speak(letter) }, `${letter}${letter.toLowerCase()}`),
+      h("button", { class: "choice", "aria-label": `Letter ${next}`, onclick: () => letterExplorer(next) }, `${next} ➡️`)),
+    h("div", { class: "tabs" }, Object.entries(CATEGORY_INFO).map(([cat, ci]) =>
+      h("button", {
+        class: cat === explorerCat ? "on" : "",
+        "aria-label": ci.label,
+        disabled: !counts[cat],
+        onclick: () => { explorerCat = cat; say(ci.label); letterExplorer(letter); },
+      }, ci.emoji, h("small", { class: "count" }, String(counts[cat]))))),
     h("div", { class: "card" },
-      h("div", { class: "giant", style: { color: COLORS[idx % COLORS.length] } }, `${letter}${letter.toLowerCase()}`),
-      h("div", { class: "tabs" },
-        h("button", { onclick: () => letterExplorer(ALPHABET[(idx + 25) % 26]) }, `⬅️ ${ALPHABET[(idx + 25) % 26]}`),
-        h("button", { onclick: () => letterExplorer() }, "🔤 All"),
-        h("button", { onclick: () => letterExplorer(ALPHABET[(idx + 1) % 26]) }, `${ALPHABET[(idx + 1) % 26]} ➡️`))),
-    sections);
+      h("div", { class: "prompt" }, `${info.emoji} ${info.label} with ${letter}`),
+      h("div", { class: "chips" }, words.map((w, i) =>
+        h("button", { class: "chip", onclick: () => speak(w), style: { borderBottom: `4px solid ${COLORS[i % COLORS.length]}` } }, w)))),
+    h("button", { class: "next", onclick: () => letterExplorer() }, "🔤 All letters"));
   say(`${letter}! Tap a word to hear it.`);
 }
+let explorerCat = Object.keys(CATEGORY_INFO)[0];
 
 let finderMode = "store";
 function storeFinder(selected) {
@@ -425,23 +455,16 @@ function storeFinder(selected) {
 
   if (finderMode === "store") {
     const s = selected ?? STORES_AZ[0];
-    const grid = h("div", { class: "state-grid" }, Object.keys(STATES).map((c) =>
-      h("button", {
-        class: s.states.includes(c) ? "state-cell on" : "state-cell",
-        style: s.states.includes(c) ? { background: s.color } : {},
-        onclick: () => speak(s.states.includes(c) ? `Yes! ${STATES[c]} has ${s.name}` : `No! ${STATES[c]} doesn't have ${s.name}`),
-      }, c)));
     screen("Where Is It? 🗺️", tabs,
-      h("div", { class: "card" },
-        storeHeader(s),
-        h("div", { class: "sub" }, `is in ${s.states.length} state${s.states.length > 1 ? "s" : ""}!`),
-        grid),
-      h("div", { class: "chips" }, STORES_AZ.map((st) =>
+      strip(STORES_AZ.map((st) =>
         h("button", {
           class: st === s ? "chip on" : "chip",
           style: st === s ? { background: st.color } : {},
           onclick: () => storeFinder(st),
-        }, `${st.emoji} ${st.name}`))));
+        }, `${st.emoji} ${st.name}`))),
+      h("div", { class: "card compact" },
+        storeHeader(s, h("div", { class: "sub" }, s.states.length === 50 ? "in all 50 states! 🎉" : `in ${s.states.length} state${s.states.length > 1 ? "s" : ""}`)),
+        stateMap((c) => (s.states.includes(c) ? s.color : null), { onTap: (c) => speak(hasLine(s, c)) })));
     if (selected) say(`${s.name} is in ${listWords(s.states.map((c) => STATES[c]))}.`);
     return;
   }
@@ -449,16 +472,16 @@ function storeFinder(selected) {
   const code = selected ?? "FL";
   const here = storesInState(code).sort(byName);
   screen("Where Is It? 🗺️", tabs,
-    h("div", { class: "state-grid", style: { marginBottom: "14px" } }, Object.keys(STATES).map((c) =>
-      h("button", {
-        class: c === code ? "state-cell on" : "state-cell",
-        style: c === code ? { background: "#8f6bff" } : {},
-        onclick: () => storeFinder(c),
-      }, c))),
+    h("div", { class: "card compact" },
+      stateMap((c) => (c === code ? "#8f6bff" : null), { onTap: (c) => storeFinder(c) })),
     h("div", { class: "card" },
       h("div", { class: "prompt" }, STATES[code]),
+      h("div", { class: "sub" }, `${here.length} store${here.length === 1 ? "" : "s"} · tap one to see its map`),
       here.length
-        ? h("div", { class: "chips" }, here.map((s) => h("span", { class: "chip on", style: { background: s.color } }, `${s.emoji} ${s.name}`)))
+        ? h("div", { class: "chips small" }, here.map((s) => h("button", {
+          class: "chip on", style: { background: s.color },
+          onclick: () => { finderMode = "store"; storeFinder(s); },
+        }, `${s.emoji} ${s.name}`)))
         : h("div", { class: "sub" }, "None of our special stores are here. Walmart and Target are everywhere though!")));
   if (selected) say(here.length ? `${STATES[code]} has ${listWords(here.map((s) => s.name))}.` : `${STATES[code]} doesn't have our special stores.`);
 }
@@ -507,7 +530,7 @@ function videoStation() {
   screen("Video Station 📺",
     h("div", { class: "card" }, h("div", { class: "prompt" }, "Watch, then think! 🧠")),
     videos.length
-      ? h("div", { class: "list" }, videos.map((v) =>
+      ? h("div", { class: "list videos" }, videos.map((v) =>
         h("div", { class: "row", onclick: () => playVideo(v) },
           h("img", {
             src: `https://i.ytimg.com/vi/${v.id}/mqdefault.jpg`, alt: "",
@@ -560,7 +583,7 @@ function friendPic(c, cls) {
 const FRIEND_SETS = [
   ["lbb", "⭐ LBB", LBB_CHARACTERS],
   ["sing", "🎤 Sing", SING_CHARACTERS],
-  ["ls", "🎵 Learning Station", LEARNING_STATION_CHARACTERS],
+  ["ls", "🎵 Station", LEARNING_STATION_CHARACTERS],
 ];
 let friendSet = "lbb";
 
@@ -575,18 +598,20 @@ function friendsScreen(selected) {
           class: friendSet === k ? "on" : "",
           onclick: () => { friendSet = k; friendsScreen(); },
         }, lbl))),
-    h("div", { class: "card" },
-      h("div", { class: "friend-face", style: { background: c.color } }, friendPic(c, "giant")),
-      h("div", { class: "store-name", style: brandText(c.color) }, c.name),
-      h("div", { class: "sub" }, `is ${c.what}`),
-      h("div", { class: "chips" }, c.facts.map((f) => h("button", { class: "chip", onclick: () => speak(f) }, f))),
-      sayButton(blurb)),
-    h("div", { class: "friend-grid" }, list.map((f) =>
+    strip(list.map((f) =>
       h("button", {
         class: f === c ? "friend on" : "friend",
         style: f === c ? { background: f.color } : {},
         onclick: () => friendsScreen(f),
-      }, friendPic(f, "big"), f.name))));
+      }, friendPic(f, "big"), f.name)), "friends-strip"),
+    h("div", { class: "card" },
+      h("div", { class: "friend-head" },
+        h("div", { class: "friend-face", style: { background: c.color } }, friendPic(c, "giant")),
+        h("div", {},
+          h("div", { class: "store-name", style: brandText(c.color) }, c.name),
+          h("div", { class: "sub" }, `is ${c.what}`),
+          sayButton(blurb))),
+      h("div", { class: "facts" }, c.facts.map((f, i) => h("button", { class: "fact-chip", style: { "--c": COLORS[i % COLORS.length] }, onclick: () => speak(f) }, f)))));
   if (selected) say(blurb);
 }
 
@@ -608,7 +633,7 @@ function guessWho() {
     label: (c) => c.name,
     isRight: (c) => c === q.answer,
     rightLine: (c) => `It's ${c.name}!`,
-    onRight: () => result.replaceChildren(nextButton(guessWho)),
+    onRight: () => showResult(result, nextButton(guessWho)),
   });
   [...btns.children].forEach((b, i) => { b.classList.add("guess"); b.prepend(friendPic(q.choices[i], "big")); });
   screen("Guess Who? ❓",
@@ -626,6 +651,75 @@ function guessWho() {
     btns,
     result);
   say(prompt);
+}
+
+let popLetter = null;
+const POP_CASES = [["upper", "ABC"], ["lower", "abc"], ["mix", "AaBb"]];
+let popCase = "upper";
+const popShow = (l) => (popCase === "lower" || (popCase === "mix" && Math.random() < 0.5) ? l.toLowerCase() : l);
+const pop = () => tone([1400, 700], "square", 0.035);
+
+function letterPop() {
+  const { target, balloons } = makeBalloonRound(Math.random, popLetter ?? undefined);
+  popLetter = null;
+  const need = balloons.filter((b) => b === target).length;
+  let got = 0;
+  const counter = h("div", { class: "pop-count" }, Array.from({ length: need }, () => h("span", {}, "🎈")));
+  const result = h("div", { class: "pop-done" });
+  const sky = h("div", { class: "sky" },
+    h("div", { class: "cloud c1" }), h("div", { class: "cloud c2" }), result,
+    balloons.map((l, i) => {
+      const b = h("button", {
+        class: "balloon",
+        "aria-label": `Balloon ${l}`,
+        style: { "--c": COLORS[(i * 3) % COLORS.length], "--d": `${(i % 4) * 0.4}s`, "--s": `${2.6 + (i % 3) * 0.5}s` },
+        onclick: () => {
+          if (b.classList.contains("popped")) return;
+          if (l !== target) {
+            b.classList.remove("nope"); void b.offsetWidth; b.classList.add("nope");
+            boop();
+            say(`That's ${l}. Find ${target}!`);
+            return;
+          }
+          b.classList.add("popped");
+          pop();
+          burst(b);
+          counter.children[got].classList.add("got");
+          got += 1;
+          if (got < need) { say(`Pop! ${need - got} more!`); return; }
+          streak += 1;
+          celebrate(`You popped all the ${target}s!`);
+          showResult(result, h("div", { class: "choices two" },
+            h("button", { class: "choice", onclick: () => { popLetter = target; letterPop(); } }, `🔁 ${target} again`),
+            h("button", { class: "choice up", onclick: letterPop }, "New letter ➡️")));
+        },
+      }, h("span", {}, popShow(l)));
+      return b;
+    }));
+  const prompt = `Pop every ${target}!`;
+  const shown = popCase === "upper" ? target : popCase === "lower" ? target.toLowerCase() : target + target.toLowerCase();
+  screen("Letter Pop 🎈",
+    h("div", { class: "tabs" }, POP_CASES.map(([k, lbl]) =>
+      h("button", { class: popCase === k ? "on" : "", onclick: () => { popCase = k; popLetter = target; letterPop(); } }, lbl))),
+    h("div", { class: "card compact pop-head" },
+      h("div", { class: "pop-letter", style: { color: pick(COLORS) } }, shown),
+      h("div", {}, h("div", { class: "prompt" }, prompt), counter),
+      h("button", { class: "say round", "aria-label": "Hear it", onclick: () => speak(`${prompt} The letter ${target}.`) }, "🔊")),
+    sky);
+  say(`${prompt} Find the letter ${target}.`);
+}
+
+function burst(el) {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const r = el.getBoundingClientRect();
+  for (let i = 0; i < 10; i++) {
+    const a = (i / 10) * Math.PI * 2;
+    const s = h("span", { class: "spark", style: { left: `${r.left + r.width / 2}px`, top: `${r.top + r.height / 3}px` } }, pick(["✨", "⭐", "💥"]));
+    document.body.append(s);
+    s.animate([{ transform: "translate(-50%,-50%) scale(.4)", opacity: 1 },
+      { transform: `translate(calc(-50% + ${Math.cos(a) * 70}px), calc(-50% + ${Math.sin(a) * 70}px)) scale(1)`, opacity: 0 }],
+    { duration: 600, easing: "ease-out" }).onfinish = () => s.remove();
+  }
 }
 
 // Each group of three zeros gets its own color so he can count the groups.
@@ -696,7 +790,7 @@ function bigQuiz(tabs) {
     label: BIG_LABELS[q.type],
     isRight: (c) => c === q.answer,
     rightLine: () => `${q.answer.name} has ${zerosLine(q.answer)}! ${q.answer.fact}`,
-    onRight: () => result.replaceChildren(bigFactCard(q.answer), nextButton(bigNumbers)),
+    onRight: () => showResult(result, bigFactCard(q.answer), nextButton(bigNumbers)),
   });
   screen("Big Numbers 🔢",
     tabs,

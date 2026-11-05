@@ -38,15 +38,16 @@ Flow: `location.hash` → `route()` → `GAMES[i].run()` → `screen(title, ...n
 | storeHunt | "Which state has a X?" 4 state choices; flips to "does NOT have" for stores in >25 states; skips stores in all 50 |
 | yesNo | "Does STATE have a X?" |
 | letterTrain | "Which {category} starts with L?" category tabs or Mix |
-| letterExplorer | letter grid → words per category, tap to hear |
-| storeFinder | pick store → 50-state grid lights up; pick state → its stores |
+| letterExplorer | 5-col letter grid → letter page: ⬅️/➡️ letter, category tabs (with word counts), word chips, tap to hear |
+| storeFinder | store chips in a sideways swipe strip → tile map (`stateMap()`, layout `STATE_TILES` in data.js, 11x8) lights up; pick state on the map → its stores (tap one → its map). Store Hunt / Yes-No answers show the same map with the answer ringed |
+| letterPop | `makeBalloonRound`: 8 bobbing balloons, 2-3 carry the target letter; pop them all → "again" / "new letter". Wrong taps wiggle. Tabs: ABC / abc / AaBb (mixed case, display only) |
 | friends | Character profiles with show tabs (`FRIEND_SETS`): LBB (`LBB_CHARACTERS`), Sing (`SING_CHARACTERS`, pictures reuse `SING_VIDEOS` thumbnails), Learning Station (`LEARNING_STATION_CHARACTERS`: Don, Laurie, Jan; picture = official Tony Chestnut cartoon, hats labeled with names). Tap a friend → facts, tap a fact to hear it |
 | guessWho | "I am a koala. Who am I?" → 4 character picture choices (3 on the Station tab, which only has 3 people). Tabs: Mixed / Sing / LBB / Station (`GUESS_WHO_SETS`); Mixed (`makeMixedCharacterQuestion`) puts at least one other show in every round's choices, but never a same-emoji friend from another show (LBB Pig vs Rosita). Clues are `*_CHARACTERS[].clues` (first person, unique across all shows, never say the answer's own name; tests enforce). Learning Station clues name the other members so each fits one person |
 | bigNumbers | `BIG_NUMBERS` (data.js) one → googol, one zero per step (0–99 zeros, then googol; user asked: he likes watching them grow). Generated from `ILLIONS`; hand-written facts/emoji in `BIG_FACTS` by zero count, other steps get a "ten times bigger" fact. Climb tab: step up/down, rainbow zero groups, fact. Quiz tab (`makeBigNumberQuestion`): name it / pick the number / count zeros / which is bigger, then the fact card. Facts must be checkable (seconds math, published estimates) |
 | keyShop | `js/keyshop.js`. Inspired by DIY keycap-painting videos. Full-size 104-key board (`KEYBOARD` in logic.js: id/label/x/y/w/h in key units, CSS grid of quarter-unit columns; scrolls sideways on the phone). Tap → wire puller lifts the cap, revealing a switch → studio: **sand** first (sandpaper follows the finger, dust, gritty sound; he taps "All smooth!") → **paint**: paint pots (`PAINTS`) + styles (`FINISHES`), rub to paint, unlimited layers; he taps "Done!" (the meter never decides; user asked: he paints multiple layers and logos) → snapshot of the canvas saved as the key face. All sounds synthesized. Missions (`makeKeyMission`) use letters. All 104 painted → "Hang it in the gallery" (localStorage `keyGallery`, framed mini boards) and the board resets. "Pop them all" → every key flies off; he puts letters back A→Z by tapping the tray cap or its empty spot on the board (user asked: he taps the board), the rest rain back on |
 | videoStation | parent adds YouTube links (localStorage) → embed (youtube-nocookie) + thinking questions |
 
-To add a game: write a `run` function using `screen()`, add an entry to `GAMES`. Home tiles are a 2-col grid; `wide: true` tiles span full width. Keep the half-width tiles an even count.
+To add a game: write a `run` function using `screen()`, add an entry to `GAMES`. Home is a 3-col grid that fits one phone screen without scrolling (user asked: less scrolling); keep the tile count a multiple of 3 (`surprise` jumps to a random game). Long pick-lists go in a sideways `strip()`, not a wall of chips. `h()` style supports `--custom` props.
 
 `LBB_CHARACTERS` only holds facts found in official sources (Moonbug, streaming episode lists, toy line, official video titles). Jacus, Pig and Daisy the cow were added Oct 2026 at the son's request (confirmed by official video titles). William the chicken's name comes from the son; no official source found. Timberly is still left out. Wikipedia's LBB voice-cast list looked vandalized (Oct 2026); don't trust it.
 
@@ -79,4 +80,4 @@ To add a game: write a `run` function using `screen()`, add an entry to `GAMES`.
 
 ## Ideas backlog (user hasn't approved these yet)
 
-Tappable SVG US map, more stores, a "spell the store" game, voice speed setting, a "big everything store" kind for Meijer/Wegmans.
+More stores, a "spell the store" game, voice speed setting, a "big everything store" kind for Meijer/Wegmans.

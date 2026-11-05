@@ -240,3 +240,10 @@ export const boardComplete = (board) => KEYBOARD.every((k) => board[k.id]);
 
 export const loadGallery = (raw) =>
   (Array.isArray(raw) ? raw : []).map(loadKeyboard).filter(boardComplete);
+
+// 8 balloons, 2-3 carry the target letter, the rest are other letters.
+export function makeBalloonRound(rng = Math.random, target = pick(ALPHABET, rng)) {
+  const hits = 2 + Math.floor(rng() * 2);
+  const others = shuffle(ALPHABET.filter((l) => l !== target), rng).slice(0, 8 - hits);
+  return { target, balloons: shuffle([...Array(hits).fill(target), ...others], rng) };
+}
