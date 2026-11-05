@@ -384,7 +384,7 @@ function shop() {
     ]);
     tool.remove();
     ghost.remove();
-    studio(id, async (newKey) => {
+    const tapSpot = studio(id, async (newKey) => {
       const wasFull = boardComplete(keyboard);
       const wasDone = missionDone(keyboard, mission);
       if (newKey) { keyboard[id] = newKey; save(); }
@@ -402,6 +402,7 @@ function shop() {
       else ui.say(`${newKey.f === "solid" ? "" : finishLabel(newKey.f)} ${keyLine(id)}`);
       setTimeout(shop, big ? 900 : 700);
     });
+    k.addEventListener("click", tapSpot);
   }
 
   function studio(id, done) {
@@ -438,6 +439,7 @@ function shop() {
     const big = keycap(id, keyboard[id], { tabindex: "-1" });
     big.classList.add("big");
     Object.assign(big.style, { width: `${CW + 24}px`, height: `${CH + 24}px` });
+    big.style.setProperty("--ar", `${CW + 24} / ${CH + 24}`);
     big.querySelector(".kc-top").prepend(sandCv, cv);
     big.querySelector(".kc-top").append(paper);
 
@@ -572,6 +574,13 @@ function shop() {
       ui.say("So smooth! Now pick a paint!");
     }
 
+    function putBack() {
+      if (finished) return;
+      finished = true;
+      swishStop();
+      done(null);
+    }
+
     async function complete() {
       if (finished) return;
       finished = true;
@@ -616,12 +625,15 @@ function shop() {
       finishRow,
       doneBtn);
 
+    bench.classList.add("studio");
     bench.replaceChildren(
       ui.h("div", { class: "mat" }, big, hint, meter),
-      sandBtn,
-      paintTools,
-      ui.h("button", { class: "tool back", onclick: () => { if (!finished) { finished = true; swishStop(); done(null); } } }, "↩️ Put it back"));
+      ui.h("div", { class: "studio-side" },
+        sandBtn,
+        paintTools,
+        ui.h("button", { class: "tool back", onclick: putBack }, "↩️ Put it back")));
     bench.scrollIntoView({ block: "start", behavior: reduced() ? "auto" : "smooth" });
+    return () => (usedPaint ? complete() : putBack());
   }
 
   idle();

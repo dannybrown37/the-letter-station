@@ -457,6 +457,30 @@ html.typing .answer-form .hint { grid-column: 1 / -1; margin-top: 0; }
   transition: opacity .15s;
 }
 .sandpaper.on { opacity: 1; }
+
+/* Landscape: key on the left, tools on the right, all on one screen. */
+@media (orientation: landscape) and (min-width: 600px) {
+  main:has(.bench.studio) { max-width: 1000px; }
+  .bench.studio {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; align-items: start;
+    height: calc(100dvh - 76px); scroll-margin-top: 70px;
+  }
+  .bench.studio .mat { margin: 0; height: 100%; display: flex; flex-direction: column; justify-content: center; }
+  .bench.studio .kc.big { width: auto !important; height: clamp(120px, calc(100dvh - 190px), 300px) !important; aspect-ratio: var(--ar); }
+  .studio-side {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0 8px; align-content: start;
+    max-height: 100%; overflow-y: auto; overscroll-behavior: contain;
+  }
+  .studio-side > *, .studio-side .paint-tools > * { grid-column: 1 / -1; }
+  .studio-side .paint-tools:not([hidden]) { display: contents; }
+  .studio-side .next, .studio-side .tool.back { order: -1; margin-top: 0; min-height: 56px; font-size: 1.15rem; }
+  .studio-side:has(.finish-btn:not([hidden])) .finish-btn,
+  .studio-side:has(.finish-btn:not([hidden])) .tool.back { grid-column: auto; }
+  .bench.studio .picker-label { margin-top: 4px; }
+  .bench.studio .pots { grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)); gap: 8px; }
+  .bench.studio .finish { min-height: 56px; padding: 6px 4px; }
+  .bench.studio .finish .swatch { width: 28px; height: 28px; }
+}
 .dust { position: fixed; z-index: 30; width: 5px; height: 5px; border-radius: 50%; background: #e3d8c4; pointer-events: none; }
 
 .gallery { display: grid; gap: 18px; margin-bottom: 8px; }

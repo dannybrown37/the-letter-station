@@ -10,10 +10,14 @@ import { keyShop } from "./keyshop.js";
 const byName = (a, b) => a.name.localeCompare(b.name);
 const STORES_AZ = [...STORES].sort(byName);
 
+// The Key Shop studio has a landscape layout; every other game stays portrait.
+const canTurn = () => location.hash === "#keyShop";
+
 // iOS has no orientation lock; CSS turns the page back, this says which way the phone went.
 function trackTurn() {
+  screen.orientation?.lock?.(canTurn() ? "any" : "portrait").catch(() => {});
   const angle = window.orientation ?? screen.orientation?.angle;
-  const turn = angle === 90 ? "left" : angle === -90 || angle === 270 ? "right" : null;
+  const turn = canTurn() ? null : angle === 90 ? "left" : angle === -90 || angle === 270 ? "right" : null;
   if (turn) document.documentElement.dataset.turn = turn;
   else delete document.documentElement.dataset.turn;
 }
@@ -808,6 +812,7 @@ function bigQuiz(tabs) {
 function route() {
   window.speechSynthesis?.cancel();
   streak = 0;
+  trackTurn();
   const game = GAMES.find((g) => g.id === location.hash.slice(1));
   game ? game.run() : home();
 }
