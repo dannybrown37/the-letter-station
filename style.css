@@ -213,8 +213,8 @@ html.typing .answer-form .hint { grid-column: 1 / -1; margin-top: 0; }
 .fact { display: block; width: 100%; margin-top: 10px; padding: 12px; border-radius: 16px; background: var(--panel); font-size: 1.15rem; font-weight: 800; line-height: 1.3; }
 .choice.up { background: var(--purple); color: #fff; }
 .choice:disabled { opacity: .35; }
-.ladder { display: flex; gap: 4px; margin-bottom: 12px; }
-.rung { flex: 1; height: 10px; border-radius: 999px; background: var(--card); transition: background .3s; }
+.ladder { display: flex; gap: 1px; margin-bottom: 12px; border-radius: 999px; overflow: hidden; }
+.rung { flex: 1; min-width: 0; height: 10px; background: var(--card); transition: background .3s; }
 .rung.on { background: var(--yellow); }
 .reveal:not(:empty) { margin-top: 12px; }
 

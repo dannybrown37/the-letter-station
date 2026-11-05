@@ -277,6 +277,20 @@ test("BIG_NUMBERS climb in order with unique names", () => {
   assert.ok(BIG_NUMBERS.every((n) => n.fact && n.emoji));
 });
 
+test("BIG_NUMBERS go up one zero at a time, 0 to a googol", () => {
+  assert.deepEqual(BIG_NUMBERS.map((n) => n.zeros), Array.from({ length: 101 }, (_, i) => i));
+  assert.equal(BIG_NUMBERS.at(-1).name, "A Googol");
+});
+
+for (const [zeros, name] of [[0, "One"], [1, "Ten"], [2, "One Hundred"], [4, "Ten Thousand"], [7, "Ten Million"], [35, "One Hundred Decillion"], [36, "One Undecillion"], [98, "One Hundred Untrigintillion"], [99, "One Duotrigintillion"]]) {
+  test(`BIG_NUMBERS[${zeros}] is ${name}`, () => assert.equal(BIG_NUMBERS[zeros].name, name));
+}
+
+test("BIG_NUMBERS keep their hand-written facts", () => {
+  assert.match(BIG_NUMBERS[9].fact, /32 years/);
+  assert.match(BIG_NUMBERS[15].fact, /ants/);
+});
+
 for (const [zeros, expected] of [[0, "1"], [1, "10"], [3, "1,000"], [4, "10,000"], [6, "1,000,000"], [9, "1,000,000,000"]]) {
   test(`bigNumberText(${zeros}) = ${expected}`, () => {
     assert.equal(bigNumberText(zeros), expected);

@@ -267,7 +267,7 @@ const withStem = (el, id) => {
   el.style.setProperty("--stem", STEMS[n % STEMS.length]);
   return el;
 };
-const slotFor = (k) => placeKey(ui.h("div", { class: "kc bare" }, withStem(switchEl(), k.id)), k);
+const slotFor = (k) => placeKey(ui.h("div", { class: "kc bare", "aria-label": `${k.id} spot` }, withStem(switchEl(), k.id)), k);
 
 const SVG = "http://www.w3.org/2000/svg";
 function svgEl(tag, attrs, ...kids) {
@@ -713,42 +713,53 @@ function rebuild() {
     return anim(placed, [{ transform: "translateY(-50px) scale(1.2)", opacity: 0 }, { transform: "translateY(3px)", opacity: 1, offset: 0.8 }, { transform: "none", opacity: 1 }], 260, "ease-in");
   };
 
-  const trayEl = ui.h("div", { class: "tray" }, shuffle(order).map((l) => {
-    const cap = keycap(l, keyboard[l], {
-      onclick: async () => {
-        if (cap.classList.contains("used")) return;
-        if (l !== order[next]) {
-          sfx.oops();
-          anim(cap, [{ transform: "rotate(0)" }, { transform: "rotate(-10deg)" }, { transform: "rotate(10deg)" }, { transform: "rotate(0)" }], 360);
-          ui.say(`That's ${l}. Find ${order[next]}!`);
-          return;
-        }
-        cap.classList.add("used");
-        slots[l].scrollIntoView({ block: "nearest", inline: "center", behavior: reduced() ? "auto" : "smooth" });
-        drop(l, () => ui.speak(keyLine(l))).then(() => sfx.snap());
-        next += 1;
-        if (next < order.length) {
-          ask();
-          ui.say(`${l}! Now find ${order[next]}!`);
-          return;
-        }
-        prompt.textContent = "All the letters are back! 🎉";
-        trayEl.replaceChildren();
-        ui.say("All the letters are back! Here come the other keys!");
-        const rest = KEYBOARD.filter((k) => !LETTER.test(k.id));
-        for (const [i, k] of rest.entries()) {
-          await wait(reduced() ? 0 : 35);
-          drop(k.id, () => ui.speak(keyLine(k.id))).then(() => { if (i % 3 === 0) sfx.snap(); });
-        }
-        await wait(400);
-        prompt.textContent = "All fixed! 🎉";
-        ui.celebrate("You put the whole keyboard back together!");
-        board.classList.add("rgb");
-        trayEl.replaceWith(ui.h("button", { class: "next", onclick: shop }, "Back to the shop ⌨️"));
-      },
+  const wiggle = (el, line) => {
+    sfx.oops();
+    anim(el, [{ transform: "rotate(0)" }, { transform: "rotate(-10deg)" }, { transform: "rotate(10deg)" }, { transform: "rotate(0)" }], 360);
+    ui.say(`${line} Find ${order[next]}!`);
+  };
+
+  const place = async (l) => {
+    trayCaps[l].classList.add("used");
+    slots[l].scrollIntoView({ block: "nearest", inline: "center", behavior: reduced() ? "auto" : "smooth" });
+    drop(l, () => ui.speak(keyLine(l))).then(() => sfx.snap());
+    next += 1;
+    if (next < order.length) {
+      ask();
+      ui.say(`${l}! Now find ${order[next]}!`);
+      return;
+    }
+    prompt.textContent = "All the letters are back! 🎉";
+    trayEl.replaceChildren();
+    ui.say("All the letters are back! Here come the other keys!");
+    const rest = KEYBOARD.filter((k) => !LETTER.test(k.id));
+    for (const [i, k] of rest.entries()) {
+      await wait(reduced() ? 0 : 35);
+      drop(k.id, () => ui.speak(keyLine(k.id))).then(() => { if (i % 3 === 0) sfx.snap(); });
+    }
+    await wait(400);
+    prompt.textContent = "All fixed! 🎉";
+    ui.celebrate("You put the whole keyboard back together!");
+    board.classList.add("rgb");
+    trayEl.replaceWith(ui.h("button", { class: "next", onclick: shop }, "Back to the shop ⌨️"));
+  };
+
+  for (const l of order) {
+    slots[l].addEventListener("click", () => {
+      if (next >= order.length || trayCaps[l].classList.contains("used")) return;
+      if (l === order[next]) place(l);
+      else wiggle(slots[l], `That's the ${l} spot.`);
     });
-    return cap;
-  }));
+  }
+
+  const trayCaps = Object.fromEntries(order.map((l) => [l, keycap(l, keyboard[l], {
+    onclick: () => {
+      if (trayCaps[l].classList.contains("used")) return;
+      if (l === order[next]) place(l);
+      else wiggle(trayCaps[l], `That's ${l}.`);
+    },
+  })]));
+  const trayEl = ui.h("div", { class: "tray" }, shuffle(order).map((l) => trayCaps[l]));
 
   ask();
   ui.screen("Key Shop ⌨️",

@@ -326,22 +326,50 @@ export const LEARNING_STATION_CHARACTERS = [
 ];
 
 // Facts are rounded on purpose; each was checked (seconds math, ant/atom/bacteria estimates from published studies).
+const ILLIONS = ["Thousand", "Million", "Billion", "Trillion", "Quadrillion", "Quintillion", "Sextillion", "Septillion",
+  "Octillion", "Nonillion", "Decillion", "Undecillion", "Duodecillion", "Tredecillion", "Quattuordecillion", "Quindecillion",
+  "Sexdecillion", "Septendecillion", "Octodecillion", "Novemdecillion", "Vigintillion", "Unvigintillion", "Duovigintillion",
+  "Trevigintillion", "Quattuorvigintillion", "Quinvigintillion", "Sexvigintillion", "Septenvigintillion", "Octovigintillion",
+  "Novemvigintillion", "Trigintillion", "Untrigintillion", "Duotrigintillion"];
+const STEP_EMOJI = ["⬆️", "🪜", "🎈"];
+const BIG_FACTS = {
+  0: ["👃", "You have one nose!"],
+  1: ["🖐️", "You have ten fingers. Count them!"],
+  2: ["🪙", "One hundred pennies make one dollar."],
+  3: ["⏱️", "One thousand seconds is about 17 minutes."],
+  4: ["🕒", "Ten thousand seconds is almost 3 hours."],
+  5: ["📅", "One hundred thousand seconds is more than a whole day!"],
+  6: ["🗓️", "One million seconds is about 11 and a half days."],
+  7: ["🍂", "Ten million seconds is almost 4 months."],
+  8: ["🎒", "One hundred million seconds is more than 3 years."],
+  9: ["🎂", "One billion seconds is about 32 years. A billion is a thousand millions!"],
+  10: ["🏰", "Ten billion seconds is about 317 years."],
+  11: ["🏛️", "One hundred billion seconds is about 3 thousand years."],
+  12: ["🦕", "One trillion seconds is about 32 thousand years!"],
+  15: ["🐜", "Scientists think there are about 20 quadrillion ants on Earth!"],
+  18: ["🤯", "A quintillion is a billion billions!"],
+  21: ["💧", "One drop of water has more than a sextillion tiny water molecules!"],
+  24: ["✨", "There might be a septillion stars in the whole universe!"],
+  27: ["🧍", "Your body is made of about 7 octillion tiny atoms!"],
+  30: ["🦠", "There are about 5 nonillion tiny bacteria on Earth!"],
+  33: ["🔟", "A decillion is a one with 33 zeros!"],
+};
+const stepFact = (zeros) => {
+  const unit = ILLIONS[Math.floor(zeros / 3) - 1];
+  const unitPlural = unit.toLowerCase() + "s";
+  if (zeros % 3 === 1) return `Ten ${unitPlural}! That's ten times bigger than one ${unit.toLowerCase()}.`;
+  if (zeros % 3 === 2) return `One hundred ${unitPlural}! That's ten times bigger than ten ${unitPlural}.`;
+  return `One ${unit.toLowerCase()} is a thousand ${ILLIONS[zeros / 3 - 2].toLowerCase()}s!`;
+};
+const bigName = (zeros) => {
+  if (zeros < 3) return ["One", "Ten", "One Hundred"][zeros];
+  const unit = ILLIONS[Math.floor(zeros / 3) - 1];
+  return `${["One", "Ten", "One Hundred"][zeros % 3]} ${unit}`;
+};
 export const BIG_NUMBERS = [
-  { name: "One", zeros: 0, emoji: "👃", fact: "You have one nose!" },
-  { name: "Ten", zeros: 1, emoji: "🖐️", fact: "You have ten fingers. Count them!" },
-  { name: "One Hundred", zeros: 2, emoji: "🪙", fact: "One hundred pennies make one dollar." },
-  { name: "One Thousand", zeros: 3, emoji: "⏱️", fact: "One thousand seconds is about 17 minutes." },
-  { name: "Ten Thousand", zeros: 4, emoji: "🕒", fact: "Ten thousand seconds is almost 3 hours." },
-  { name: "One Hundred Thousand", zeros: 5, emoji: "📅", fact: "One hundred thousand seconds is more than a whole day!" },
-  { name: "One Million", zeros: 6, emoji: "🗓️", fact: "One million seconds is about 11 and a half days." },
-  { name: "One Billion", zeros: 9, emoji: "🎂", fact: "One billion seconds is about 32 years. A billion is a thousand millions!" },
-  { name: "One Trillion", zeros: 12, emoji: "🦕", fact: "One trillion seconds is about 32 thousand years!" },
-  { name: "One Quadrillion", zeros: 15, emoji: "🐜", fact: "Scientists think there are about 20 quadrillion ants on Earth!" },
-  { name: "One Quintillion", zeros: 18, emoji: "🤯", fact: "A quintillion is a billion billions!" },
-  { name: "One Sextillion", zeros: 21, emoji: "💧", fact: "One drop of water has more than a sextillion tiny water molecules!" },
-  { name: "One Septillion", zeros: 24, emoji: "✨", fact: "There might be a septillion stars in the whole universe!" },
-  { name: "One Octillion", zeros: 27, emoji: "🧍", fact: "Your body is made of about 7 octillion tiny atoms!" },
-  { name: "One Nonillion", zeros: 30, emoji: "🦠", fact: "There are about 5 nonillion tiny bacteria on Earth!" },
-  { name: "One Decillion", zeros: 33, emoji: "🔟", fact: "A decillion is a one with 33 zeros!" },
+  ...Array.from({ length: 100 }, (_, zeros) => {
+    const [emoji, fact] = BIG_FACTS[zeros] ?? [STEP_EMOJI[zeros % 3], stepFact(zeros)];
+    return { name: bigName(zeros), zeros, emoji, fact };
+  }),
   { name: "A Googol", zeros: 100, emoji: "🚀", fact: "A googol is a one with 100 zeros! Google is named after it. That's more than all the atoms in the universe!" },
 ];
