@@ -1,9 +1,10 @@
-import { KEY_ROWS, PAINTS, FINISHES, shuffle, loadKeyboard, keyWord, makeKeyMission, missionDone, keyMeetsMission } from "./logic.js";
+import { KEYBOARD, PAINTS, FINISHES, shuffle, loadKeyboard, loadGallery, boardComplete, keyName, keyWord, makeKeyMission, missionDone, keyMeetsMission } from "./logic.js";
 
 let ui;
 let keyboard = null;
 let mission = null;
 let lights = false;
+let gallery = null;
 
 const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 const anim = (el, frames, ms, easing = "ease-out") =>
@@ -74,35 +75,58 @@ const sfx = {
   }),
   sparkle: safe(() => [1568, 2093, 2637, 3136, 4186].forEach((f, i) =>
     sweep({ from: f, to: f * 1.01, dur: 0.3, peak: 0.05, type: "triangle", at: i * 0.055 }))),
+  puff: safe(() => {
+    burst({ type: "bandpass", freq: 900, q: 0.6, peak: 0.14, dur: 0.4 });
+    burst({ type: "highpass", freq: 4000, peak: 0.05, dur: 0.25, at: 0.05 });
+  }),
   oops: safe(() => sweep({ from: 320, to: 250, dur: 0.14, peak: 0.07, type: "triangle" })),
 };
 
+// Brush = soft bandpassed noise. Sandpaper = brighter noise chopped by a fast square LFO, so it sounds gritty.
 let swish = null;
-const swishStart = safe(() => {
+const swishStart = safe((sand = false) => {
   if (swish) return;
   const n = noise();
   n.loop = true;
   const f = ac().createBiquadFilter();
-  f.type = "bandpass";
-  f.frequency.value = 1500;
+  f.type = sand ? "highpass" : "bandpass";
+  f.frequency.value = sand ? 2400 : 1500;
   f.Q.value = 0.7;
   const g = ac().createGain();
   g.gain.value = 0;
-  n.connect(f).connect(g).connect(ac().destination);
+  let out = g;
+  let lfo = null;
+  if (sand) {
+    const grit = ac().createGain();
+    grit.gain.value = 0.6;
+    lfo = ac().createOscillator();
+    lfo.type = "square";
+    lfo.frequency.value = 22;
+    const depth = ac().createGain();
+    depth.gain.value = 0.4;
+    lfo.connect(depth).connect(grit.gain);
+    lfo.start();
+    g.connect(grit);
+    out = grit;
+  }
+  n.connect(f).connect(g);
+  out.connect(ac().destination);
   n.start();
-  swish = { n, g, f };
+  swish = { n, g, f, lfo, sand };
 });
 const swishSpeed = safe((pxPerMs) => {
   if (!swish) return;
   const t = ac().currentTime;
-  swish.g.gain.setTargetAtTime(Math.min(0.13, pxPerMs * 0.05), t, 0.03);
-  swish.f.frequency.setTargetAtTime(1100 + Math.min(1500, pxPerMs * 600), t, 0.05);
+  swish.g.gain.setTargetAtTime(Math.min(swish.sand ? 0.2 : 0.13, pxPerMs * (swish.sand ? 0.08 : 0.05)), t, 0.03);
+  if (swish.lfo) swish.lfo.frequency.setTargetAtTime(14 + Math.min(40, pxPerMs * 25), t, 0.05);
+  else swish.f.frequency.setTargetAtTime(1100 + Math.min(1500, pxPerMs * 600), t, 0.05);
 });
 const swishStop = safe(() => {
   if (!swish) return;
   const t = ac().currentTime;
   swish.g.gain.setTargetAtTime(0, t, 0.05);
   swish.n.stop(t + 0.3);
+  swish.lfo?.stop(t + 0.3);
   swish = null;
 });
 
@@ -121,89 +145,129 @@ function seededRng(str) {
   return () => ((s = (s * 16807) % 2147483647) - 1) / 2147483646;
 }
 
-function drawFinish(g, w, { c, f }) {
+
+function drawFinish(g, w, h, { c, f }) {
+  const u = Math.min(w, h);
   g.fillStyle = c;
-  g.fillRect(0, 0, w, w);
+  g.fillRect(0, 0, w, h);
   if (f === "stripes") {
     g.fillStyle = mix(c, "#ffffff", 0.6);
-    const step = w / 4;
-    for (let x = -w; x < w * 2; x += step) {
+    const step = u / 4;
+    for (let x = -h; x < w + h; x += step) {
       g.beginPath();
-      g.moveTo(x, 0); g.lineTo(x + step / 2, 0); g.lineTo(x + step / 2 - w, w); g.lineTo(x - w, w);
+      g.moveTo(x, 0); g.lineTo(x + step / 2, 0); g.lineTo(x + step / 2 - h, h); g.lineTo(x - h, h);
       g.fill();
     }
   } else if (f === "dots") {
     g.fillStyle = mix(c, "#ffffff", 0.75);
-    const step = w / 4.2;
-    for (let row = 0, y = step / 2; y < w + step; y += step, row++) {
+    const step = u / 4.2;
+    for (let row = 0, y = step / 2; y < h + step; y += step, row++) {
       for (let x = row % 2 ? step : step / 2; x < w + step; x += step) {
-        g.beginPath(); g.arc(x, y, w / 16, 0, Math.PI * 2); g.fill();
+        g.beginPath(); g.arc(x, y, u / 16, 0, Math.PI * 2); g.fill();
       }
     }
   } else if (f === "glitter") {
-    const grad = g.createLinearGradient(0, 0, w, w);
+    const grad = g.createLinearGradient(0, 0, w, h);
     grad.addColorStop(0, mix(c, "#ffffff", 0.25));
     grad.addColorStop(1, mix(c, "#000000", 0.3));
     g.fillStyle = grad;
-    g.fillRect(0, 0, w, w);
+    g.fillRect(0, 0, w, h);
     const rng = seededRng(c);
     const specks = ["#ffffff", "#fff3b0", mix(c, "#ffffff", 0.8)];
-    for (let i = 0; i < w * 2.4; i++) {
+    const area = (w * h) / (u * u);
+    for (let i = 0; i < u * 2.4 * area; i++) {
       g.fillStyle = specks[i % 3];
       g.globalAlpha = 0.5 + rng() * 0.5;
-      const s = (0.6 + rng() * 1.6) * (w / 72);
-      g.fillRect(rng() * w, rng() * w, s, s);
+      const s = (0.6 + rng() * 1.6) * (u / 72);
+      g.fillRect(rng() * w, rng() * h, s, s);
     }
     g.globalAlpha = 1;
     g.fillStyle = "#ffffff";
-    for (let i = 0; i < 5; i++) {
-      const x = rng() * w, y = rng() * w, r = (2 + rng() * 3) * (w / 72);
+    for (let i = 0; i < 5 * area; i++) {
+      const x = rng() * w, y = rng() * h, r = (2 + rng() * 3) * (u / 72);
       g.beginPath();
       g.moveTo(x, y - r); g.lineTo(x + r / 4, y - r / 4); g.lineTo(x + r, y); g.lineTo(x + r / 4, y + r / 4);
       g.lineTo(x, y + r); g.lineTo(x - r / 4, y + r / 4); g.lineTo(x - r, y); g.lineTo(x - r / 4, y - r / 4);
       g.fill();
     }
   } else if (f === "rainbow") {
-    const grad = g.createLinearGradient(0, 0, w, w);
+    const grad = g.createLinearGradient(0, 0, w, h);
     RAINBOW.forEach((col, i) => grad.addColorStop(i / (RAINBOW.length - 1), col));
     g.fillStyle = grad;
-    g.fillRect(0, 0, w, w);
+    g.fillRect(0, 0, w, h);
   } else if (f === "split") {
     g.fillStyle = mix(c, "#ffffff", 0.72);
-    g.beginPath(); g.moveTo(w, 0); g.lineTo(w, w); g.lineTo(0, w); g.fill();
+    g.beginPath(); g.moveTo(w, 0); g.lineTo(w, h); g.lineTo(0, h); g.fill();
+  }
+}
+
+// Sanded keycap: matte raw plastic with fine scratches.
+function drawRaw(g, w, h) {
+  const u = Math.min(w, h);
+  g.fillStyle = "#d8d2c6";
+  g.fillRect(0, 0, w, h);
+  const rng = seededRng("raw");
+  for (let i = 0; i < (w * h * 6) / u; i++) {
+    g.fillStyle = rng() < 0.5 ? "rgba(255,255,255,.35)" : "rgba(90,80,70,.18)";
+    const s = (0.5 + rng()) * (u / 180);
+    g.fillRect(rng() * w, rng() * h, s, s);
+  }
+  g.strokeStyle = "rgba(255,255,255,.25)";
+  g.lineWidth = u / 360;
+  for (let i = 0; i < 40; i++) {
+    const x = rng() * w, y = rng() * h, a = (rng() - 0.5) * 0.6;
+    g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * u / 6, y + Math.sin(a) * u / 6); g.stroke();
   }
 }
 
 const faceCache = new Map();
 function faceUrl(key) {
+  if (key.img) return key.img;
   const id = `${key.c}|${key.f}`;
   if (!faceCache.has(id)) {
     const cv = document.createElement("canvas");
     cv.width = cv.height = 96;
-    drawFinish(cv.getContext("2d"), 96, key);
+    drawFinish(cv.getContext("2d"), 96, 96, key);
     faceCache.set(id, cv.toDataURL());
   }
   return faceCache.get(id);
 }
+
+const KEY_BY_ID = Object.fromEntries(KEYBOARD.map((k) => [k.id, k]));
+const LETTER = /^[A-Z]$/;
 
 function dressKey(el, key) {
   const top = el.querySelector(".kc-top");
   top.style.backgroundImage = key ? `url(${faceUrl(key)})` : "";
   const base = key ? (key.f === "rainbow" ? "#7b4fd6" : key.c) : null;
   el.style.setProperty("--skirt", base ? mix(base, "#000000", 0.4) : "");
-  el.classList.toggle("light", Boolean(key && key.f !== "rainbow" && isLight(key.c)));
+  el.classList.toggle("light", Boolean(key && !key.img && key.f !== "rainbow" && isLight(key.c)));
   el.classList.toggle("painted", Boolean(key));
 }
 
-function keycap(letter, key, props = {}) {
-  const el = ui.h("button", { class: "kc", "aria-label": letter, ...props }, ui.h("span", { class: "kc-top" }, ui.h("span", { class: "legend" }, letter)));
+function keycap(id, key, props = {}) {
+  const label = KEY_BY_ID[id].label;
+  const el = ui.h("button", { class: "kc", "aria-label": keyName(id), ...props },
+    ui.h("span", { class: "kc-top" }, ui.h("span", { class: label.length > 1 ? "legend long" : "legend" }, label)));
   dressKey(el, key);
+  return el;
+}
+
+// Row 2 of the grid is a thin spacer under the function row, like a real board.
+function placeKey(el, k) {
+  el.style.gridColumn = `${k.x * 4 + 1} / span ${k.w * 4}`;
+  el.style.gridRow = `${k.y === 0 ? 1 : k.y + 2} / span ${k.h}`;
   return el;
 }
 
 const STEMS = ["#e5484d", "#3e8ef7", "#a0703f", "#f5c518", "#2fbf71"];
 const switchEl = () => ui.h("span", { class: "switch" }, ui.h("span", { class: "stem" }));
-const withStem = (el, letter) => { el.style.setProperty("--stem", STEMS[letter.charCodeAt(0) % STEMS.length]); return el; };
+const withStem = (el, id) => {
+  const n = [...id].reduce((a, ch) => a + ch.charCodeAt(0), 0);
+  el.style.setProperty("--stem", STEMS[n % STEMS.length]);
+  return el;
+};
+const slotFor = (k) => placeKey(ui.h("div", { class: "kc bare" }, withStem(switchEl(), k.id)), k);
 
 const SVG = "http://www.w3.org/2000/svg";
 function svgEl(tag, attrs, ...kids) {
@@ -217,13 +281,19 @@ const puller = () => svgEl("svg", { class: "puller", viewBox: "0 0 60 110", widt
   svgEl("path", { d: "M23 31 L13 98 L22 104 M37 31 L47 98 L38 104", fill: "none", stroke: "#d9deea", "stroke-width": 4, "stroke-linecap": "round", "stroke-linejoin": "round" }));
 
 const finishLabel = (f) => FINISHES.find((x) => x.id === f).label;
-const keyLine = (l) => { const w = keyWord(l); return w ? `${l} is for ${w}!` : `${l}!`; };
+const cap1 = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+function keyLine(id) {
+  if (LETTER.test(id)) { const w = keyWord(id); return w ? `${id} is for ${w}!` : `${id}!`; }
+  return `${cap1(keyName(id))}!`;
+}
 const save = () => ui.store.set("keyboard", keyboard);
+const paintedCount = () => KEYBOARD.filter((k) => keyboard[k.id]).length;
 
 // ---------- the shop ----------
 export function keyShop(ctx) {
   ui = ctx;
   keyboard ??= loadKeyboard(ui.store.get("keyboard", {}));
+  gallery ??= loadGallery(ui.store.get("keyGallery", []));
   mission ??= makeKeyMission();
   shop();
 }
@@ -231,7 +301,7 @@ export function keyShop(ctx) {
 function missionCard() {
   const m = mission;
   const done = missionDone(keyboard, m);
-  const card = ui.h("div", { class: `card mission${done ? " done" : ""}` },
+  return ui.h("div", { class: `card mission${done ? " done" : ""}` },
     ui.h("div", { class: "sub" }, done ? "🎉 Mission done!" : "🎯 Mission"),
     ui.h("div", { class: "prompt" }, m.text),
     ui.h("div", { class: "mission-keys" }, m.letters.map((l) => {
@@ -243,14 +313,13 @@ function missionCard() {
     done
       ? ui.h("button", { class: "next", onclick: () => { mission = makeKeyMission(); shop(); } }, "Next mission ➡️")
       : ui.h("button", { class: "say", onclick: () => ui.speak(m.text) }, "🔊 Hear it"));
-  return card;
 }
 
-function caseEl(rows) {
-  return ui.h("div", { class: lights ? "kb rgb" : "kb" },
+function caseEl(keys, extra = "") {
+  return ui.h("div", { class: `kb${lights ? " rgb" : ""}${extra}` },
     ui.h("span", { class: "screw tl" }), ui.h("span", { class: "screw tr" }),
     ui.h("span", { class: "screw bl" }), ui.h("span", { class: "screw br" }),
-    ui.h("div", { class: "plate" }, rows));
+    ui.h("div", { class: "plate" }, keys));
 }
 
 function shop() {
@@ -258,37 +327,56 @@ function shop() {
   const keys = {};
   const bench = ui.h("div", { class: "bench" });
   const mCard = missionCard();
-  const board = caseEl(KEY_ROWS.map((row) => ui.h("div", { class: "kb-row" }, [...row].map((l) => {
-    keys[l] = keycap(l, keyboard[l], { onclick: () => !busy && pull(l) });
-    if (!keyMeetsMission(keyboard[l], mission) && mission.letters.includes(l)) keys[l].classList.add("target");
-    return keys[l];
-  }))));
+  const board = caseEl(KEYBOARD.map((k) => {
+    keys[k.id] = placeKey(keycap(k.id, keyboard[k.id], { onclick: () => !busy && pull(k.id) }), k);
+    if (mission.letters.includes(k.id) && !keyMeetsMission(keyboard[k.id], mission)) keys[k.id].classList.add("target");
+    return keys[k.id];
+  }));
+  const scroller = ui.h("div", { class: "kb-scroll" }, board);
+  const full = boardComplete(keyboard);
+
+  const doneCard = full ? ui.h("div", { class: "card finished" },
+    ui.h("div", { class: "prompt" }, "🎉 Every key is painted!"),
+    ui.h("button", { class: "next", onclick: hang }, "🖼️ Hang it in the gallery!")) : "";
 
   const idle = () => bench.replaceChildren(
-    ui.h("div", { class: "bench-hint" }, "🔧 Tap a key to pull it off!"),
+    ui.h("div", { class: "bench-hint" }, "🔧 Tap any key to pull it off!"),
     ui.h("div", { class: "tools" },
       ui.h("button", { class: `tool${lights ? " on" : ""}`, onclick: () => { lights = !lights; board.classList.toggle("rgb", lights); sfx.thock(); idle(); } }, lights ? "💡 Lights on" : "💡 Lights"),
-      ui.h("button", { class: "tool", onclick: () => !busy && popAll(keys) }, "🫧 Pop them all!")));
+      ui.h("button", { class: "tool", onclick: () => !busy && popAll(keys) }, "🫧 Pop them all!"),
+      ui.h("button", { class: "tool wide", onclick: () => { sfx.thock(); galleryScreen(); } }, `🖼️ Gallery (${gallery.length})`)));
 
-  async function pull(l) {
+  function hang() {
+    const next = [...gallery, keyboard];
+    try {
+      ui.store.set("keyGallery", next);
+    } catch {
+      doneCard.append(ui.h("div", { class: "sub" }, "The gallery is full! Ask a grown-up for help."));
+      ui.say("The gallery is full! Ask a grown-up for help.");
+      return;
+    }
+    gallery = next;
+    keyboard = {};
+    save();
+    ui.celebrate("Your keyboard is in the gallery!");
+    galleryScreen(gallery.length - 1);
+  }
+
+  async function pull(id) {
     busy = true;
-    const k = keys[l];
+    const k = keys[id];
     const tool = puller();
     board.append(tool);
-    const x = k.offsetLeft + k.offsetWidth / 2 - 30;
-    tool.style.left = `${x}px`;
+    tool.style.left = `${k.offsetLeft + k.offsetWidth / 2 - 30}px`;
     tool.style.top = `${k.offsetTop - 62}px`;
     await anim(tool, [{ transform: "translateY(-50px)", opacity: 0 }, { transform: "translateY(0)", opacity: 1 }], 260);
     sfx.pop();
-    ui.say(l);
+    ui.say(cap1(keyName(id)));
     const ghost = k.cloneNode(true);
     ghost.classList.add("ghost");
-    ghost.style.left = `${k.offsetLeft}px`;
-    ghost.style.top = `${k.offsetTop}px`;
-    ghost.style.width = `${k.offsetWidth}px`;
-    ghost.style.height = `${k.offsetHeight}px`;
+    Object.assign(ghost.style, { left: `${k.offsetLeft}px`, top: `${k.offsetTop}px`, width: `${k.offsetWidth}px`, height: `${k.offsetHeight}px`, gridColumn: "", gridRow: "" });
     board.append(ghost);
-    k.replaceChildren(withStem(switchEl(), l));
+    k.replaceChildren(withStem(switchEl(), id));
     k.classList.add("bare");
     await Promise.all([
       anim(tool, [{ transform: "translateY(0)" }, { transform: "translateY(-70px)", opacity: 0 }], 380, "cubic-bezier(.3,1.6,.6,1)"),
@@ -296,68 +384,88 @@ function shop() {
     ]);
     tool.remove();
     ghost.remove();
-    studio(l, async (newKey) => {
-      if (newKey) { keyboard[l] = newKey; save(); }
-      const fresh = keycap(l, keyboard[l], { onclick: () => !busy && pull(l) });
+    studio(id, async (newKey) => {
+      const wasFull = boardComplete(keyboard);
+      const wasDone = missionDone(keyboard, mission);
+      if (newKey) { keyboard[id] = newKey; save(); }
+      const fresh = placeKey(keycap(id, keyboard[id], { onclick: () => !busy && pull(id) }), KEY_BY_ID[id]);
       k.replaceWith(fresh);
-      keys[l] = fresh;
-      fresh.scrollIntoView({ block: "center", behavior: reduced() ? "auto" : "smooth" });
-      await wait(250);
+      keys[id] = fresh;
+      fresh.scrollIntoView({ block: "center", inline: "center", behavior: reduced() ? "auto" : "smooth" });
+      await wait(300);
       await anim(fresh, [{ transform: "translateY(-60px) scale(1.15)", opacity: 0 }, { transform: "translateY(4px)", opacity: 1, offset: 0.8 }, { transform: "translateY(0)", opacity: 1 }], 320, "ease-in");
       sfx.snap();
       busy = false;
       if (!newKey) { shop(); return; }
-      const wasDone = mCard.classList.contains("done");
-      const nowDone = missionDone(keyboard, mission);
-      if (nowDone && !wasDone) ui.celebrate("Mission done!");
-      else ui.say(`${newKey.f === "solid" ? "" : finishLabel(newKey.f)} ${l}! ${keyLine(l)}`);
-      setTimeout(shop, nowDone && !wasDone ? 900 : 700);
+      const big = !wasFull && boardComplete(keyboard) ? "You painted every single key!" : !wasDone && missionDone(keyboard, mission) ? "Mission done!" : null;
+      if (big) ui.celebrate(big);
+      else ui.say(`${newKey.f === "solid" ? "" : finishLabel(newKey.f)} ${keyLine(id)}`);
+      setTimeout(shop, big ? 900 : 700);
     });
   }
 
-  function studio(l, done) {
+  function studio(id, done) {
+    const spec = KEY_BY_ID[id];
     const paints = PAINTS.some((p) => p.color === mission.color) || !mission.color ? PAINTS : [{ name: mission.colorName, color: mission.color }, ...PAINTS];
-    const start = keyboard[l] ?? { c: paints[0].color, f: "solid" };
+    const start = keyboard[id] ?? { c: paints[0].color, f: "solid" };
     let brush = { c: paints.some((p) => p.color === start.c) ? start.c : paints[0].color, f: start.f };
-    let painted = 0;
+    let phase = "sand";
     let finished = false;
+    let usedPaint = false;
 
-    const S = 180;
+    const aspect = spec.w / spec.h;
+    const CH = aspect < 1 ? 220 : aspect > 1.5 ? 130 : 170;
+    const CW = aspect < 1 ? 120 : Math.round(Math.min(310, CH * aspect));
     const dpr = Math.min(window.devicePixelRatio || 1, 3);
-    const cv = ui.h("canvas", { class: "paint-canvas", width: S * dpr, height: S * dpr });
+    const makeCanvas = () => ui.h("canvas", { class: "paint-canvas", width: Math.round(CW * dpr), height: Math.round(CH * dpr) });
+    const sandCv = makeCanvas();
+    const cv = makeCanvas();
+    const sg = sandCv.getContext("2d", { willReadFrequently: true });
     const g = cv.getContext("2d", { willReadFrequently: true });
-    let pattern;
-    const makePattern = () => {
+    const patternOf = (ctx, draw) => {
       const off = document.createElement("canvas");
-      off.width = off.height = S * dpr;
-      drawFinish(off.getContext("2d"), S * dpr, brush);
-      pattern = g.createPattern(off, "no-repeat");
+      off.width = cv.width;
+      off.height = cv.height;
+      draw(off.getContext("2d"), off.width, off.height);
+      return ctx.createPattern(off, "no-repeat");
     };
+    const rawPattern = patternOf(sg, drawRaw);
+    let pattern;
+    const makePattern = () => { pattern = patternOf(g, (c, w, h) => drawFinish(c, w, h, brush)); };
     makePattern();
 
-    const big = keycap(l, keyboard[l], { tabindex: "-1" });
+    const paper = ui.h("span", { class: "sandpaper" });
+    const big = keycap(id, keyboard[id], { tabindex: "-1" });
     big.classList.add("big");
-    big.querySelector(".kc-top").prepend(cv);
-    const meter = ui.h("div", { class: "meter" }, ui.h("span"));
-    const finishBtn = ui.h("button", { class: "next finish-btn", hidden: true, onclick: () => complete() }, "✨ Finish it!");
+    Object.assign(big.style, { width: `${CW + 24}px`, height: `${CH + 24}px` });
+    big.querySelector(".kc-top").prepend(sandCv, cv);
+    big.querySelector(".kc-top").append(paper);
 
-    const coverage = () => {
-      const d = g.getImageData(0, 0, cv.width, cv.height).data;
+    const meter = ui.h("div", { class: "meter" }, ui.h("span"));
+    const hint = ui.h("div", { class: "bench-hint" }, "🟫 Rub with the sandpaper to make it smooth!");
+    const sandBtn = ui.h("button", { class: "next sand-btn", hidden: true, onclick: () => sanded() }, "✨ All smooth!");
+    const doneBtn = ui.h("button", { class: "next finish-btn", hidden: true, onclick: () => complete() }, "✅ Done! Put it on");
+    const paintTools = ui.h("div", { class: "paint-tools", hidden: true });
+
+    const coverage = (ctx, canvas) => {
+      const d = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
       let hit = 0, all = 0;
       const step = 6 * dpr;
-      for (let y = step / 2; y < cv.height; y += step) {
-        for (let x = step / 2; x < cv.width; x += step) {
+      for (let y = step / 2; y < canvas.height; y += step) {
+        for (let x = step / 2; x < canvas.width; x += step) {
           all++;
-          if (d[(Math.floor(y) * cv.width + Math.floor(x)) * 4 + 3] > 40) hit++;
+          if (d[(Math.floor(y) * canvas.width + Math.floor(x)) * 4 + 3] > 40) hit++;
         }
       }
       return hit / all;
     };
+    // The meter only shows progress; he decides when each step is done.
     const updateMeter = () => {
-      painted = coverage();
-      meter.firstChild.style.width = `${Math.round(painted * 100)}%`;
-      finishBtn.hidden = painted < 0.3;
-      if (painted >= 0.8) complete();
+      const [ctx, canvas] = phase === "sand" ? [sg, sandCv] : [g, cv];
+      const amount = coverage(ctx, canvas);
+      meter.firstChild.style.width = `${Math.round(amount * 100)}%`;
+      if (phase === "sand") sandBtn.hidden = amount < 0.15;
+      else doneBtn.hidden = !usedPaint;
     };
 
     const local = (e) => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * (cv.width / r.width), (e.clientY - r.top) * (cv.height / r.height)]; };
@@ -385,6 +493,20 @@ function shop() {
         g.stroke();
       }
     };
+    const scuff = (x, y) => {
+      sg.fillStyle = rawPattern;
+      for (let i = 0; i < 24; i++) {
+        const a = Math.random() * Math.PI * 2, d = Math.random() * 28 * dpr;
+        sg.fillRect(x + Math.cos(a) * d - 4 * dpr, y + Math.sin(a) * d - 2 * dpr, (5 + Math.random() * 9) * dpr, (2 + Math.random() * 3) * dpr);
+      }
+    };
+    const sandLine = (x0, y0, x1, y1) => {
+      const n = Math.max(1, Math.ceil(Math.hypot(x1 - x0, y1 - y0) / (8 * dpr)));
+      for (let i = 1; i <= n; i++) scuff(x0 + ((x1 - x0) * i) / n, y0 + ((y1 - y0) * i) / n);
+    };
+    const movePaper = ([x, y]) => {
+      paper.style.transform = `translate(${x / dpr - 30}px, ${y / dpr - 24}px) rotate(${Math.sin(x / 20) * 8 - 8}deg)`;
+    };
 
     let last = null, lastT = 0, moves = 0;
     cv.addEventListener("pointerdown", (e) => {
@@ -392,46 +514,80 @@ function shop() {
       cv.setPointerCapture(e.pointerId);
       last = local(e);
       lastT = e.timeStamp;
-      splat(...last);
-      swishStart();
+      if (phase === "sand") {
+        scuff(...last);
+        movePaper(last);
+        paper.classList.add("on");
+        swishStart(true);
+      } else {
+        splat(...last);
+        usedPaint = true;
+        swishStart();
+      }
       swishSpeed(0.6);
       updateMeter();
     });
     cv.addEventListener("pointermove", (e) => {
       if (!last || finished) return;
       const p = local(e);
-      stroke(...last, ...p);
+      if (phase === "sand") {
+        sandLine(...last, ...p);
+        movePaper(p);
+        if (moves % 3 === 0) dust(e.clientX, e.clientY, 2);
+      } else {
+        stroke(...last, ...p);
+      }
       const dt = Math.max(1, e.timeStamp - lastT);
       swishSpeed(Math.hypot(p[0] - last[0], p[1] - last[1]) / dpr / dt);
       last = p;
       lastT = e.timeStamp;
       if (++moves % 5 === 0) updateMeter();
     });
-    const lift = () => { if (!last) return; last = null; swishStop(); if (!finished) updateMeter(); };
+    const lift = () => {
+      if (!last) return;
+      last = null;
+      swishStop();
+      paper.classList.remove("on");
+      if (!finished) updateMeter();
+    };
     cv.addEventListener("pointerup", lift);
     cv.addEventListener("pointercancel", lift);
+
+    function sanded() {
+      if (phase !== "sand") return;
+      phase = "paint";
+      last = null;
+      swishStop();
+      paper.classList.remove("on");
+      sg.fillStyle = rawPattern;
+      sg.fillRect(0, 0, sandCv.width, sandCv.height);
+      sfx.puff();
+      const r = big.getBoundingClientRect();
+      dust(r.left + r.width / 2, r.top + r.height / 2, 24, 90);
+      meter.firstChild.style.width = "0%";
+      sandBtn.hidden = true;
+      hint.textContent = "🖌️ Paint as many layers as you want! Tap ✅ Done when it looks perfect.";
+      paintTools.hidden = false;
+      anim(paintTools, [{ opacity: 0, transform: "translateY(16px)" }, { opacity: 1, transform: "none" }], 350);
+      ui.say("So smooth! Now pick a paint!");
+    }
 
     async function complete() {
       if (finished) return;
       finished = true;
       swishStop();
-      const cx = cv.width / 2;
-      const t0 = performance.now();
-      await new Promise((resolve) => {
-        const grow = (now) => {
-          const t = reduced() ? 1 : Math.min(1, Math.max(0.01, (now - t0) / 380));
-          g.fillStyle = pattern;
-          g.beginPath(); g.arc(cx, cx, cx * 1.5 * t, 0, Math.PI * 2); g.fill();
-          t < 1 ? requestAnimationFrame(grow) : resolve();
-        };
-        requestAnimationFrame(grow);
-      });
-      meter.firstChild.style.width = "100%";
+      const snap = document.createElement("canvas");
+      snap.height = 48;
+      snap.width = Math.round((48 * CW) / CH);
+      const sc = snap.getContext("2d");
+      sc.drawImage(sandCv, 0, 0, snap.width, snap.height);
+      sc.drawImage(cv, 0, 0, snap.width, snap.height);
+      const img = snap.toDataURL("image/jpeg", 0.82);
       big.classList.add("shine");
       sfx.sparkle();
       sparkles(big);
       await wait(1000);
-      done({ ...brush });
+      done({ ...brush, img });
     }
 
     const potRow = ui.h("div", { class: "pots" });
@@ -453,23 +609,30 @@ function shop() {
     };
     drawPickers();
 
-    bench.replaceChildren(
-      ui.h("div", { class: "mat" },
-        big,
-        ui.h("div", { class: "bench-hint" }, "🖌️ Rub the key to paint it!"),
-        meter),
+    paintTools.append(
       ui.h("div", { class: "picker-label" }, "🎨 Paint"),
       potRow,
       ui.h("div", { class: "picker-label" }, "✨ Style"),
       finishRow,
-      finishBtn,
+      doneBtn);
+
+    bench.replaceChildren(
+      ui.h("div", { class: "mat" }, big, hint, meter),
+      sandBtn,
+      paintTools,
       ui.h("button", { class: "tool back", onclick: () => { if (!finished) { finished = true; swishStop(); done(null); } } }, "↩️ Put it back"));
     bench.scrollIntoView({ block: "start", behavior: reduced() ? "auto" : "smooth" });
   }
 
   idle();
-  ui.screen("Key Shop ⌨️", mCard, board, bench);
-  if (!missionDone(keyboard, mission)) ui.say(mission.text);
+  ui.screen("Key Shop ⌨️",
+    mCard,
+    doneCard,
+    ui.h("div", { class: "kb-count" }, `🎨 ${paintedCount()} of ${KEYBOARD.length} keys painted · ↔️ swipe for more`),
+    scroller,
+    bench);
+  if (!full && !missionDone(keyboard, mission)) ui.say(mission.text);
+  else if (full) ui.say("Every key is painted! Hang it in the gallery!");
 }
 
 function sparkles(el) {
@@ -486,33 +649,71 @@ function sparkles(el) {
   }
 }
 
-// ---------- pop them all: keys scatter, he puts them back A to Z ----------
-async function popAll(keys) {
-  const letters = Object.keys(keys);
-  for (const [i, l] of letters.entries()) {
-    const k = keys[l];
-    setTimeout(() => {
-      sfx.pop();
-      const dx = (Math.random() - 0.5) * 260, dr = (Math.random() - 0.5) * 720;
-      anim(k, [{ transform: "none" }, { transform: `translate(${dx}px, -120px) rotate(${dr / 2}deg)`, offset: 0.4 }, { transform: `translate(${dx * 1.4}px, 420px) rotate(${dr}deg)`, opacity: 0 }], 900, "cubic-bezier(.2,.6,.6,1)");
-    }, reduced() ? 0 : i * 55);
+function dust(x, y, n, spread = 30) {
+  for (let i = 0; i < n; i++) {
+    const d = ui.h("span", { class: "dust" });
+    d.style.left = `${x}px`;
+    d.style.top = `${y}px`;
+    document.body.append(d);
+    const dx = (Math.random() - 0.5) * spread * 2, dy = 20 + Math.random() * (40 + spread);
+    anim(d, [{ transform: "translate(-50%,-50%)", opacity: 0.9 },
+      { transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(.4)`, opacity: 0 }], 600 + Math.random() * 400)
+      .then(() => d.remove());
   }
-  await wait(letters.length * 55 + 800);
-  rebuild(shuffle(letters));
 }
 
-function rebuild(tray) {
-  const order = [...KEY_ROWS.join("")].sort();
+// ---------- gallery ----------
+function galleryScreen(newest = -1) {
+  const frames = gallery.map((b, i) => {
+    const mini = caseEl(KEYBOARD.map((k) => {
+      const el = ui.h("span", { class: "kc" }, ui.h("span", { class: "kc-top" }));
+      dressKey(el, b[k.id]);
+      return placeKey(el, k);
+    }), " tiny");
+    return ui.h("button", {
+      class: `frame${i === newest ? " new" : ""}`,
+      onclick: () => { mini.classList.toggle("rgb"); sfx.thock(); ui.speak(`Keyboard number ${i + 1}!`); },
+    }, mini, ui.h("span", { class: "plaque" }, `Keyboard #${i + 1}`));
+  }).reverse();
+  ui.screen("Gallery 🖼️",
+    ui.h("div", { class: "card" },
+      ui.h("div", { class: "prompt" }, "🖼️ Your keyboards"),
+      ui.h("div", { class: "sub" }, frames.length ? "Tap one to light it up!" : "No keyboards yet! Paint every key to hang one here.")),
+    ui.h("div", { class: "gallery" }, frames),
+    ui.h("button", { class: "next", onclick: shop }, "⌨️ Back to the shop"));
+  ui.say(frames.length ? `You have ${frames.length} ${frames.length === 1 ? "keyboard" : "keyboards"} in the gallery!` : "No keyboards yet!");
+}
+
+// ---------- pop them all: keys scatter, he puts the letters back A to Z ----------
+async function popAll(keys) {
+  const ids = Object.keys(keys);
+  const gap = reduced() ? 0 : 14;
+  ids.forEach((id, i) => setTimeout(() => {
+    if (i % 4 === 0) sfx.pop();
+    const dx = (Math.random() - 0.5) * 300, dr = (Math.random() - 0.5) * 720;
+    anim(keys[id], [{ transform: "none" }, { transform: `translate(${dx}px, -120px) rotate(${dr / 2}deg)`, offset: 0.4 }, { transform: `translate(${dx * 1.4}px, 420px) rotate(${dr}deg)`, opacity: 0 }], 900, "cubic-bezier(.2,.6,.6,1)");
+  }, i * gap));
+  await wait(ids.length * gap + 800);
+  rebuild();
+}
+
+function rebuild() {
+  const order = KEYBOARD.filter((k) => LETTER.test(k.id)).map((k) => k.id).sort();
   let next = 0;
-  const slots = {};
+  const slots = Object.fromEntries(KEYBOARD.map((k) => [k.id, slotFor(k)]));
   const prompt = ui.h("div", { class: "prompt" });
   const ask = () => { prompt.textContent = `Find ${order[next]}!`; };
-  const board = caseEl(KEY_ROWS.map((row) => ui.h("div", { class: "kb-row" }, [...row].map((l) => {
-    slots[l] = ui.h("div", { class: "kc bare" }, withStem(switchEl(), l));
-    return slots[l];
-  }))));
+  const board = caseEl(Object.values(slots));
+  const scroller = ui.h("div", { class: "kb-scroll" }, board);
 
-  const trayEl = ui.h("div", { class: "tray" }, tray.map((l) => {
+  const drop = (id, onclick) => {
+    const placed = placeKey(keycap(id, keyboard[id], { onclick }), KEY_BY_ID[id]);
+    slots[id].replaceWith(placed);
+    slots[id] = placed;
+    return anim(placed, [{ transform: "translateY(-50px) scale(1.2)", opacity: 0 }, { transform: "translateY(3px)", opacity: 1, offset: 0.8 }, { transform: "none", opacity: 1 }], 260, "ease-in");
+  };
+
+  const trayEl = ui.h("div", { class: "tray" }, shuffle(order).map((l) => {
     const cap = keycap(l, keyboard[l], {
       onclick: async () => {
         if (cap.classList.contains("used")) return;
@@ -523,22 +724,27 @@ function rebuild(tray) {
           return;
         }
         cap.classList.add("used");
-        const placed = keycap(l, keyboard[l], { onclick: () => ui.speak(keyLine(l)) });
-        slots[l].replaceWith(placed);
-        slots[l] = placed;
+        slots[l].scrollIntoView({ block: "nearest", inline: "center", behavior: reduced() ? "auto" : "smooth" });
+        drop(l, () => ui.speak(keyLine(l))).then(() => sfx.snap());
         next += 1;
-        anim(placed, [{ transform: "translateY(-50px) scale(1.2)", opacity: 0 }, { transform: "translateY(3px)", opacity: 1, offset: 0.8 }, { transform: "none", opacity: 1 }], 260, "ease-in")
-          .then(() => sfx.snap());
-        if (next === order.length) {
-          prompt.textContent = "All fixed! 🎉";
-          await wait(300);
-          ui.celebrate("You put the whole keyboard back together!");
-          board.classList.add("rgb");
-          trayEl.replaceWith(ui.h("button", { class: "next", onclick: shop }, "Back to the shop ⌨️"));
-        } else {
+        if (next < order.length) {
           ask();
           ui.say(`${l}! Now find ${order[next]}!`);
+          return;
         }
+        prompt.textContent = "All the letters are back! 🎉";
+        trayEl.replaceChildren();
+        ui.say("All the letters are back! Here come the other keys!");
+        const rest = KEYBOARD.filter((k) => !LETTER.test(k.id));
+        for (const [i, k] of rest.entries()) {
+          await wait(reduced() ? 0 : 35);
+          drop(k.id, () => ui.speak(keyLine(k.id))).then(() => { if (i % 3 === 0) sfx.snap(); });
+        }
+        await wait(400);
+        prompt.textContent = "All fixed! 🎉";
+        ui.celebrate("You put the whole keyboard back together!");
+        board.classList.add("rgb");
+        trayEl.replaceWith(ui.h("button", { class: "next", onclick: shop }, "Back to the shop ⌨️"));
       },
     });
     return cap;
@@ -550,7 +756,7 @@ function rebuild(tray) {
       ui.h("div", { class: "sub" }, "🫧 Uh oh, all the keys popped off!"),
       prompt,
       ui.h("button", { class: "say", onclick: () => ui.speak(prompt.textContent) }, "🔊 Hear it")),
-    board,
+    scroller,
     trayEl);
-  ui.say(`Uh oh, all the keys popped off! Let's put them back. Find ${order[0]}!`);
+  ui.say(`Uh oh, all the keys popped off! Let's put the letters back. Find ${order[0]}!`);
 }

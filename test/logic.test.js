@@ -5,7 +5,7 @@ import {
   makeStoreQuestion, makeYesNoQuestion, storesInState, parseYouTubeId, shuffle, checkLetterAnswer,
   isDeadThumb, mergeVideos, makeCharacterQuestion, makeMixedCharacterQuestion,
   bigNumberText, makeBigNumberQuestion, BIG_QUIZ_TYPES,
-  ALPHABET, KEY_ROWS, PAINTS, loadKeyboard, keyWord, makeKeyMission, KEY_MISSION_TYPES, missionDone, FINISHES,
+  ALPHABET, PAINTS, loadKeyboard, keyWord, makeKeyMission, KEY_MISSION_TYPES, missionDone, FINISHES, boardComplete, loadGallery, KEYBOARD, keyName,
 } from "../js/logic.js";
 import { BIG_NUMBERS, STATES, STORES, WORDS, KINDS, SING_VIDEOS, LBB_CHARACTERS, SING_CHARACTERS, LEARNING_STATION_CHARACTERS } from "../js/data.js";
 
@@ -310,9 +310,6 @@ test("makeBigNumberQuestion picks a random type when none given", () => {
   assert.deepEqual([...types].sort(), [...BIG_QUIZ_TYPES].sort());
 });
 
-test("KEY_ROWS hold each letter exactly once", () => {
-  assert.deepEqual(KEY_ROWS.join("").split("").sort(), [...ALPHABET]);
-});
 
 test("PAINTS are hex colors with unique names", () => {
   assert.ok(PAINTS.every((p) => /^#[0-9a-f]{6}$/i.test(p.color)));
@@ -329,7 +326,8 @@ for (const [raw, expected] of [
   [null, {}],
   ["junk", {}],
   [[1, 2], {}],
-  [{ A: "#ff0000", b: "#00ff00", "1": "#000000", C: "red", D: "#12345" }, { A: { c: "#ff0000", f: "solid" } }],
+  [{ A: "#ff0000", b: "#00ff00", "1": "#000000", Space: "#111111", Nope: "#222222", C: "red", D: "#12345" },
+    { A: { c: "#ff0000", f: "solid" }, "1": { c: "#000000", f: "solid" }, Space: { c: "#111111", f: "solid" } }],
   [{ Q: { c: "#ABCDEF", f: "dots" } }, { Q: { c: "#ABCDEF", f: "dots" } }],
   [{ Q: { c: "#ABCDEF", f: "lava" } }, { Q: { c: "#ABCDEF", f: "solid" } }],
   [{ Q: { c: "nope", f: "dots" }, R: { f: "dots" }, S: null }, {}],
@@ -388,3 +386,75 @@ for (const [name, board, mission, expected] of [
 test("every store color is a 6-digit hex (spell missions paint with it)", () => {
   for (const s of STORES) assert.match(s.color, /^#[0-9a-f]{6}$/i, s.name);
 });
+
+const fullBoard = (f = "solid") => Object.fromEntries(KEYBOARD.map((k) => [k.id, { c: "#112233", f }]));
+
+test("KEYBOARD: unique ids, every letter, full-size extras", () => {
+  const ids = KEYBOARD.map((k) => k.id);
+  assert.equal(new Set(ids).size, ids.length);
+  for (const id of [...ALPHABET, "Esc", "F1", "F12", "1", "0", "Space", "Backspace", "Enter", "ShiftL", "ShiftR", "Up", "Num0", "Num7", "NumPlus", "NumEnter"]) {
+    assert.ok(ids.includes(id), id);
+  }
+  assert.ok(KEYBOARD.length >= 100);
+  assert.ok(KEYBOARD.every((k) => typeof k.label === "string" && k.w > 0 && k.h > 0));
+});
+
+test("KEYBOARD: no two keys overlap (quarter-unit cells)", () => {
+  const taken = new Map();
+  for (const k of KEYBOARD) {
+    for (let x = k.x * 4; x < (k.x + k.w) * 4; x++) {
+      for (let y = k.y; y < k.y + k.h; y++) {
+        const cell = `${x},${y}`;
+        assert.ok(!taken.has(cell), `${k.id} overlaps ${taken.get(cell)}`);
+        taken.set(cell, k.id);
+      }
+    }
+  }
+});
+
+for (const [id, expected] of [["A", "A"], ["7", "7"], ["Space", "space bar"], ["F5", "F 5"], ["Num7", "number pad 7"], ["Esc", "escape"], ["Up", "up arrow"]]) {
+  test(`keyName(${id}) = ${expected}`, () => {
+    assert.equal(keyName(id), expected);
+  });
+}
+
+for (const [name, board, expected] of [
+  ["empty", {}, false],
+  ["letters only", Object.fromEntries(ALPHABET.map((l) => [l, { c: "#112233", f: "solid" }])), false],
+  ["every key but Space", Object.fromEntries(KEYBOARD.filter((k) => k.id !== "Space").map((k) => [k.id, { c: "#112233", f: "solid" }])), false],
+  ["every key", fullBoard(), true],
+]) {
+  test(`boardComplete: ${name}`, () => {
+    assert.equal(boardComplete(board), expected);
+  });
+}
+
+for (const [name, raw, expectedLen] of [
+  ["null", null, 0],
+  ["not an array", { a: 1 }, 0],
+  ["drops incomplete and junk boards", [fullBoard(), { A: "#ffffff" }, "junk", null, fullBoard("dots")], 2],
+  ["migrates old bare-hex boards", [Object.fromEntries(KEYBOARD.map((k) => [k.id, "#abcdef"]))], 1],
+]) {
+  test(`loadGallery: ${name}`, () => {
+    const g = loadGallery(raw);
+    assert.equal(g.length, expectedLen);
+    assert.ok(g.every(boardComplete));
+  });
+}
+
+test("loadGallery cleans each saved key", () => {
+  const [b] = loadGallery([Object.fromEntries(KEYBOARD.map((k) => [k.id, "#abcdef"]))]);
+  assert.deepEqual(b.A, { c: "#abcdef", f: "solid" });
+});
+
+for (const [name, raw, expected] of [
+  ["keeps a jpeg snapshot", { A: { c: "#112233", f: "dots", img: "data:image/jpeg;base64,AAAA" } }, { A: { c: "#112233", f: "dots", img: "data:image/jpeg;base64,AAAA" } }],
+  ["keeps a png snapshot", { A: { c: "#112233", f: "solid", img: "data:image/png;base64,QUJD+/=" } }, { A: { c: "#112233", f: "solid", img: "data:image/png;base64,QUJD+/=" } }],
+  ["drops a non-image url", { A: { c: "#112233", f: "solid", img: "javascript:alert(1)" } }, { A: { c: "#112233", f: "solid" } }],
+  ["drops an http url", { A: { c: "#112233", f: "solid", img: "https://example.com/x.png" } }, { A: { c: "#112233", f: "solid" } }],
+  ["drops svg data (could carry script)", { A: { c: "#112233", f: "solid", img: "data:image/svg+xml;base64,AAAA" } }, { A: { c: "#112233", f: "solid" } }],
+]) {
+  test(`loadKeyboard snapshot: ${name}`, () => {
+    assert.deepEqual(loadKeyboard(raw), expected);
+  });
+}

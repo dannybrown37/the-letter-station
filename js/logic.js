@@ -115,7 +115,50 @@ export function makeBigNumberQuestion(rng = Math.random, type = pick(BIG_QUIZ_TY
   return { type, answer, choices: shuffle(picks, rng) };
 }
 
-export const KEY_ROWS = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"];
+// Full-size ANSI board in key units (1u = one letter key). Each run lays keys left to right from x.
+// Entry: "id" (label = id), or [id, label, w = 1, h = 1].
+const run = (y, x, keys) => keys.map((k) => {
+  const [id, label = id, w = 1, h = 1] = typeof k === "string" ? [k] : k;
+  const key = { id, label, x, y, w, h };
+  x += w;
+  return key;
+});
+const chars = (s) => [...s];
+export const KEYBOARD = [
+  ...run(0, 0, ["Esc"]),
+  ...run(0, 2, ["F1", "F2", "F3", "F4"]),
+  ...run(0, 6.5, ["F5", "F6", "F7", "F8"]),
+  ...run(0, 11, ["F9", "F10", "F11", "F12"]),
+  ...run(0, 15.25, [["PrtSc", "Prt"], ["ScrLk", "Scr"], ["Pause", "Pse"]]),
+  ...run(1, 0, [["Backtick", "`"], ...chars("1234567890"), ["Minus", "-"], ["Equals", "="], ["Backspace", "⌫", 2]]),
+  ...run(1, 15.25, [["Ins", "Ins"], ["Home", "Home"], ["PgUp", "PgUp"]]),
+  ...run(1, 18.5, [["NumLock", "Num"], ["NumSlash", "/"], ["NumStar", "*"], ["NumMinus", "-"]]),
+  ...run(2, 0, [["Tab", "Tab", 1.5], ...chars("QWERTYUIOP"), ["LBracket", "["], ["RBracket", "]"], ["Backslash", "\\", 1.5]]),
+  ...run(2, 15.25, [["Del", "Del"], ["End", "End"], ["PgDn", "PgDn"]]),
+  ...run(2, 18.5, [["Num7", "7"], ["Num8", "8"], ["Num9", "9"], ["NumPlus", "+", 1, 2]]),
+  ...run(3, 0, [["Caps", "Caps", 1.75], ...chars("ASDFGHJKL"), ["Semicolon", ";"], ["Quote", "'"], ["Enter", "Enter", 2.25]]),
+  ...run(3, 18.5, [["Num4", "4"], ["Num5", "5"], ["Num6", "6"]]),
+  ...run(4, 0, [["ShiftL", "Shift", 2.25], ...chars("ZXCVBNM"), ["Comma", ","], ["Period", "."], ["Slash", "/"], ["ShiftR", "Shift", 2.75]]),
+  ...run(4, 16.25, [["Up", "↑"]]),
+  ...run(4, 18.5, [["Num1", "1"], ["Num2", "2"], ["Num3", "3"], ["NumEnter", "⏎", 1, 2]]),
+  ...run(5, 0, [["CtrlL", "Ctrl", 1.25], ["Win", "❖", 1.25], ["AltL", "Alt", 1.25], ["Space", "", 6.25], ["AltR", "Alt", 1.25], ["Fn", "Fn", 1.25], ["Menu", "☰", 1.25], ["CtrlR", "Ctrl", 1.25]]),
+  ...run(5, 15.25, [["Left", "←"], ["Down", "↓"], ["Right", "→"]]),
+  ...run(5, 18.5, [["Num0", "0", 2], ["NumDot", "."]]),
+];
+export const KEYBOARD_WIDTH = 22.5;
+const KEY_IDS = new Set(KEYBOARD.map((k) => k.id));
+
+const KEY_NAMES = {
+  Esc: "escape", PrtSc: "print screen", ScrLk: "scroll lock", Pause: "pause", Backtick: "backtick", Minus: "minus", Equals: "equals",
+  Backspace: "backspace", Ins: "insert", Home: "home", PgUp: "page up", PgDn: "page down", Del: "delete", End: "end",
+  NumLock: "num lock", NumSlash: "number pad slash", NumStar: "number pad star", NumMinus: "number pad minus", NumPlus: "number pad plus",
+  NumEnter: "number pad enter", NumDot: "number pad dot", Tab: "tab", LBracket: "left bracket", RBracket: "right bracket",
+  Backslash: "backslash", Caps: "caps lock", Semicolon: "semicolon", Quote: "quote", Enter: "enter", ShiftL: "shift", ShiftR: "shift",
+  Comma: "comma", Period: "period", Slash: "slash", CtrlL: "control", CtrlR: "control", Win: "windows key", AltL: "alt", AltR: "alt",
+  Space: "space bar", Fn: "function", Menu: "menu", Up: "up arrow", Down: "down arrow", Left: "left arrow", Right: "right arrow",
+};
+export const keyName = (id) =>
+  KEY_NAMES[id] ?? (/^F\d+$/.test(id) ? `F ${id.slice(1)}` : /^Num\d$/.test(id) ? `number pad ${id.slice(3)}` : id);
 
 export const PAINTS = [
   { name: "red", color: "#ff4d5e" },
@@ -139,19 +182,21 @@ export const FINISHES = [
 const FINISH_IDS = new Set(FINISHES.map((f) => f.id));
 
 const HEX = /^#[0-9a-f]{6}$/i;
-const UPPER = /^[A-Z]$/;
+const SNAPSHOT = /^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/;
 
 // Old saves stored a bare "#hex" per key; they become plain-finish keys.
 function loadKey(v) {
   if (typeof v === "string") return HEX.test(v) ? { c: v, f: "solid" } : null;
   if (!v || typeof v !== "object" || typeof v.c !== "string" || !HEX.test(v.c)) return null;
-  return { c: v.c, f: FINISH_IDS.has(v.f) ? v.f : "solid" };
+  const key = { c: v.c, f: FINISH_IDS.has(v.f) ? v.f : "solid" };
+  if (typeof v.img === "string" && SNAPSHOT.test(v.img)) key.img = v.img;
+  return key;
 }
 
 export function loadKeyboard(raw) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
   return Object.fromEntries(Object.entries(raw)
-    .filter(([k]) => UPPER.test(k))
+    .filter(([k]) => KEY_IDS.has(k))
     .map(([k, v]) => [k, loadKey(v)])
     .filter(([, v]) => v));
 }
@@ -190,3 +235,8 @@ export const keyMeetsMission = (key, mission) =>
   Boolean(key) && (!mission.color || key.c === mission.color) && (!mission.finish || key.f === mission.finish);
 
 export const missionDone = (board, mission) => mission.letters.every((l) => keyMeetsMission(board[l], mission));
+
+export const boardComplete = (board) => KEYBOARD.every((k) => board[k.id]);
+
+export const loadGallery = (raw) =>
+  (Array.isArray(raw) ? raw : []).map(loadKeyboard).filter(boardComplete);

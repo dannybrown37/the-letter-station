@@ -21,7 +21,7 @@ Jump straight to a game with its `#id`, e.g. [#keyShop](https://dannybrown37.git
 | ⭐ Friends | Little Baby Bum, Sing, and Learning Station characters with facts |
 | ❓ Guess Who? | "I am a koala. Who am I?" — pick the character |
 | 🔢 Big Numbers | Climb from one to a googol; quiz on names, zeros, and which is bigger |
-| ⌨️ Key Shop | Pull keycaps, paint them with your finger (colors + patterns), put the keyboard back A→Z |
+| ⌨️ Key Shop | Full-size keyboard: pull keycaps, sand them, paint layers with your finger, hang finished keyboards in a gallery |
 | 📺 Video Station | Grown-up pastes YouTube links; after watching, thinking questions |
 
 Data lives in `js/data.js` — add stores (`STORES`) or words (`WORDS`) there. Store footprints are approximate.
