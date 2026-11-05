@@ -217,3 +217,31 @@ html.typing .answer-form .hint { grid-column: 1 / -1; margin-top: 0; }
 .rung { flex: 1; height: 10px; border-radius: 999px; background: var(--card); transition: background .3s; }
 .rung.on { background: var(--yellow); }
 .reveal:not(:empty) { margin-top: 12px; }
+
+.kb { display: grid; gap: 6px; padding: 10px 6px; margin-bottom: 12px; background: #0e0a14; border-radius: var(--radius); box-shadow: var(--shadow); }
+.kb-row { display: flex; justify-content: center; gap: 4px; }
+.key {
+  flex: 0 0 calc((100% - 36px) / 10); height: 54px; padding: 0;
+  border-radius: 9px; background: #3a3149; color: var(--ink);
+  font-size: 1.35rem; font-weight: 900;
+  box-shadow: 0 5px 0 rgba(0, 0, 0, .6), inset 0 -3px 0 rgba(0, 0, 0, .25);
+  transition: transform .18s, opacity .25s, background .3s;
+}
+.key.target { outline: 3px dashed var(--yellow); outline-offset: -3px; }
+.key.popped { transform: translateY(-14px) rotate(-6deg) scale(1.1); box-shadow: 0 16px 10px rgba(0, 0, 0, .55); z-index: 1; }
+.key.snap { animation: snap .35s; }
+.key.gone { transform: translateY(80px) rotate(30deg); opacity: 0; }
+.key.slot { background: #1c1626; box-shadow: inset 0 3px 6px rgba(0, 0, 0, .7); }
+.key.wiggle { animation: shake .4s; }
+.key.used { visibility: hidden; }
+.key.mini { flex: 0 0 40px; height: 44px; font-size: 1.1rem; }
+.key.mini.got::after { content: "✓"; font-size: .8rem; margin-left: 1px; }
+.mission-keys { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 8px 0 4px; }
+.workbench { display: flex; flex-direction: column; align-items: center; gap: 8px; min-height: 150px; padding: 12px; background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); }
+.key.giant-key { flex: none; width: 96px; height: 96px; font-size: 3rem; border-radius: 18px; animation: bump .4s; }
+.cups { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; width: 100%; }
+.cup { aspect-ratio: 1; min-height: 52px; border-radius: 50%; box-shadow: var(--shadow), inset 0 -6px 0 rgba(0, 0, 0, .25); }
+.cup.star { outline: 4px solid var(--yellow); outline-offset: 2px; }
+.tray { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; padding: 12px; background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); }
+.tray .key { flex: 0 0 56px; height: 56px; }
+@keyframes snap { 0% { transform: translateY(-14px); } 60% { transform: translateY(3px); } 100% { transform: none; } }

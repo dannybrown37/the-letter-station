@@ -5,6 +5,7 @@ import {
   makeStoreQuestion, makeYesNoQuestion, storesInState, parseYouTubeId, shuffle, checkLetterAnswer,
   isDeadThumb, mergeVideos, makeCharacterQuestion, makeMixedCharacterQuestion,
   bigNumberText, makeBigNumberQuestion, BIG_QUIZ_TYPES,
+  ALPHABET, KEY_ROWS, PAINTS, loadKeyboard, keyWord, makeKeyMission, KEY_MISSION_TYPES, missionDone,
 } from "../js/logic.js";
 import { BIG_NUMBERS, STATES, STORES, WORDS, KINDS, SING_VIDEOS, LBB_CHARACTERS, SING_CHARACTERS, LEARNING_STATION_CHARACTERS } from "../js/data.js";
 
@@ -307,4 +308,62 @@ test("makeBigNumberQuestion picks a random type when none given", () => {
   const rng = seeded(3);
   const types = new Set(Array.from({ length: 100 }, () => makeBigNumberQuestion(rng).type));
   assert.deepEqual([...types].sort(), [...BIG_QUIZ_TYPES].sort());
+});
+
+test("KEY_ROWS hold each letter exactly once", () => {
+  assert.deepEqual(KEY_ROWS.join("").split("").sort(), [...ALPHABET]);
+});
+
+test("PAINTS are hex colors with unique names", () => {
+  assert.ok(PAINTS.every((p) => /^#[0-9a-f]{6}$/i.test(p.color)));
+  assert.equal(new Set(PAINTS.map((p) => p.name)).size, PAINTS.length);
+});
+
+for (const [raw, expected] of [
+  [null, {}],
+  ["junk", {}],
+  [[1, 2], {}],
+  [{ A: "#ff0000", b: "#00ff00", "1": "#000000", C: "red", D: "#12345" }, { A: "#ff0000" }],
+  [{ Q: "#ABCDEF" }, { Q: "#ABCDEF" }],
+]) {
+  test(`loadKeyboard(${JSON.stringify(raw)}) keeps only A-Z hex colors`, () => {
+    assert.deepEqual(loadKeyboard(raw), expected);
+  });
+}
+
+test("keyWord gives a word starting with the letter, or null", () => {
+  const rng = seeded(5);
+  for (const l of ALPHABET) {
+    const w = keyWord(l, rng);
+    if (w !== null) assert.equal(firstLetter(w), l);
+  }
+  assert.equal(firstLetter(keyWord("P", rng)), "P");
+});
+
+for (const type of KEY_MISSION_TYPES) {
+  test(`makeKeyMission ${type}: valid letters and color`, () => {
+    const rng = seeded(11);
+    for (let i = 0; i < 100; i++) {
+      const m = makeKeyMission(rng, type);
+      assert.equal(m.type, type);
+      assert.ok(m.letters.length > 0);
+      assert.equal(new Set(m.letters).size, m.letters.length);
+      assert.ok(m.letters.every((l) => ALPHABET.includes(l)));
+      assert.match(m.color, /^#[0-9a-f]{6}$/i);
+      assert.ok(m.text && m.colorName);
+      if (type === "vowels") assert.deepEqual(m.letters, ["A", "E", "I", "O", "U"]);
+      if (type === "spell") assert.ok(m.letters.length <= 7);
+    }
+  });
+}
+
+test("missionDone only when every mission letter has the mission color", () => {
+  const m = { letters: ["A", "B"], color: "#111111" };
+  assert.equal(missionDone({ A: "#111111" }, m), false);
+  assert.equal(missionDone({ A: "#111111", B: "#222222" }, m), false);
+  assert.equal(missionDone({ A: "#111111", B: "#111111", C: "#333333" }, m), true);
+});
+
+test("every store color is a 6-digit hex (spell missions paint with it)", () => {
+  for (const s of STORES) assert.match(s.color, /^#[0-9a-f]{6}$/i, s.name);
 });

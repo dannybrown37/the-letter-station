@@ -114,3 +114,51 @@ export function makeBigNumberQuestion(rng = Math.random, type = pick(BIG_QUIZ_TY
   const answer = type === "bigger" ? picks.reduce((a, b) => (b.zeros > a.zeros ? b : a)) : picks[0];
   return { type, answer, choices: shuffle(picks, rng) };
 }
+
+export const KEY_ROWS = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"];
+
+export const PAINTS = [
+  { name: "red", color: "#ff4d5e" },
+  { name: "orange", color: "#ff8a3d" },
+  { name: "yellow", color: "#ffd23f" },
+  { name: "green", color: "#36c275" },
+  { name: "blue", color: "#3fa9f5" },
+  { name: "purple", color: "#8f6bff" },
+  { name: "pink", color: "#ff5ca8" },
+  { name: "white", color: "#f4f0fa" },
+];
+
+const HEX = /^#[0-9a-f]{6}$/i;
+const UPPER = /^[A-Z]$/;
+
+export function loadKeyboard(raw) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+  return Object.fromEntries(Object.entries(raw).filter(([k, v]) => UPPER.test(k) && typeof v === "string" && HEX.test(v)));
+}
+
+export function keyWord(letter, rng = Math.random) {
+  const words = Object.keys(WORDS).flatMap((c) => wordsForLetter(letter, c));
+  return words.length ? pick(words, rng) : null;
+}
+
+export const KEY_MISSION_TYPES = ["vowels", "spell", "letter"];
+const lettersOf = (name) => [...new Set(name.toUpperCase().replace(/[^A-Z]/g, ""))];
+const SPELLABLE = STORES.filter((s) => { const n = s.name.replace(/[^a-z]/gi, "").length; return n >= 3 && n <= 7; });
+
+export function makeKeyMission(rng = Math.random, type = pick(KEY_MISSION_TYPES, rng)) {
+  if (type === "spell") {
+    const s = pick(SPELLABLE, rng);
+    const letters = lettersOf(s.name);
+    const colorName = `${s.name} color`;
+    return { type, letters, color: s.color, colorName, word: s.name, text: `Paint ${letters.join("-")} ${colorName}!` };
+  }
+  const paint = pick(PAINTS, rng);
+  if (type === "vowels") {
+    return { type, letters: ["A", "E", "I", "O", "U"], color: paint.color, colorName: paint.name, text: `Paint all the vowels ${paint.name}!` };
+  }
+  const letter = pick(ALPHABET.filter((l) => keyWord(l, rng)), rng);
+  const word = keyWord(letter, rng);
+  return { type, letters: [letter], color: paint.color, colorName: paint.name, word, text: `Paint ${letter} for ${word} ${paint.name}!` };
+}
+
+export const missionDone = (board, mission) => mission.letters.every((l) => board[l] === mission.color);

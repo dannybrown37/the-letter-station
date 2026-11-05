@@ -42,6 +42,7 @@ Flow: `location.hash` → `route()` → `GAMES[i].run()` → `screen(title, ...n
 | friends | Character profiles with show tabs (`FRIEND_SETS`): LBB (`LBB_CHARACTERS`), Sing (`SING_CHARACTERS`, pictures reuse `SING_VIDEOS` thumbnails), Learning Station (`LEARNING_STATION_CHARACTERS`: Don, Laurie, Jan; picture = official Tony Chestnut cartoon, hats labeled with names). Tap a friend → facts, tap a fact to hear it |
 | guessWho | "I am a koala. Who am I?" → 4 character picture choices (3 on the Station tab, which only has 3 people). Tabs: Mixed / Sing / LBB / Station (`GUESS_WHO_SETS`); Mixed (`makeMixedCharacterQuestion`) puts at least one other show in every round's choices, but never a same-emoji friend from another show (LBB Pig vs Rosita). Clues are `*_CHARACTERS[].clues` (first person, unique across all shows, never say the answer's own name; tests enforce). Learning Station clues name the other members so each fits one person |
 | bigNumbers | `BIG_NUMBERS` (data.js) one → googol. Climb tab: step up/down, rainbow zero groups, fact. Quiz tab (`makeBigNumberQuestion`): name it / pick the number / count zeros / which is bigger, then the fact card. Facts must be checkable (seconds math, published estimates) |
+| keyShop | Inspired by DIY keycap-painting videos. QWERTY board (`KEY_ROWS`): tap a key → it pops up → pick a paint (`PAINTS`) → snaps back, "P is for Publix" (`keyWord`). Paint saved in localStorage `keyboard`. Mission card (`makeKeyMission`): paint the vowels / spell a store in its brand color / one letter. "Pop them all" → keys scatter into a tray, he puts them back A→Z |
 | videoStation | parent adds YouTube links (localStorage) → embed (youtube-nocookie) + thinking questions |
 
 To add a game: write a `run` function using `screen()`, add an entry to `GAMES`. Home tiles are a 2-col grid; `wide: true` tiles span full width. Keep the half-width tiles an even count.
@@ -60,7 +61,7 @@ To add a game: write a `run` function using `screen()`, add an entry to `GAMES`.
 
 ## localStorage keys
 
-`stars` (number), `narration` (bool), `videos` ([{id,title,questions[]}]), `storeImages` ({wiki: url|""}).
+`stars` (number), `narration` (bool), `videos` ([{id,title,questions[]}]), `storeImages` ({wiki: url|""}), `keyboard` ({A: "#hex"}, cleaned by `loadKeyboard`).
 
 ## Commands
 
