@@ -4,8 +4,8 @@ import {
   makeStoreQuestion, makeYesNoQuestion, storesInState, parseYouTubeId,
   checkLetterAnswer, firstLetter, isDeadThumb, mergeVideos, makeCharacterQuestion, makeMixedCharacterQuestion,
   bigNumberText, makeBigNumberQuestion,
-  KEY_ROWS, PAINTS, loadKeyboard, keyWord, makeKeyMission, missionDone,
 } from "./logic.js";
+import { keyShop } from "./keyshop.js";
 
 const byName = (a, b) => a.name.localeCompare(b.name);
 const STORES_AZ = [...STORES].sort(byName);
@@ -110,8 +110,6 @@ function tone(freqs, type = "sine", step = 0.11) {
 }
 const ding = () => tone([523, 659, 784, 1047]);
 const boop = () => tone([300, 220], "triangle", 0.15);
-const pop = () => tone([520, 880], "sine", 0.045);
-const click = () => tone([1300, 700], "triangle", 0.025);
 
 function confetti(n = 18) {
   const box = document.getElementById("confetti");
@@ -193,7 +191,7 @@ const GAMES = [
   { id: "friends", label: "Friends", emoji: "⭐", color: "#00b8a9", run: () => friendsScreen(), wide: true },
   { id: "guessWho", label: "Guess Who?", emoji: "❓", color: "#e05a5a", run: guessWho, wide: true },
   { id: "bigNumbers", label: "Big Numbers", emoji: "🔢", color: "#8f6bff", run: bigNumbers, wide: true },
-  { id: "keyShop", label: "Key Shop", emoji: "⌨️", color: "#ff5ca8", run: keyShop, wide: true },
+  { id: "keyShop", label: "Key Shop", emoji: "⌨️", color: "#ff5ca8", run: () => keyShop({ h, screen, say, speak, celebrate, store, audio: () => (audio ??= new AudioContext()) }), wide: true },
   { id: "videoStation", label: "Video Station", emoji: "📺", color: "#ffb800", run: videoStation, wide: true },
 ];
 
@@ -710,173 +708,6 @@ function bigQuiz(tabs) {
     btns,
     result);
   say(prompt);
-}
-
-// ---------- Key Shop ----------
-let keyboard = loadKeyboard(store.get("keyboard", {}));
-let keyMission = null;
-
-const isLight = (hex) => {
-  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
-  return 0.299 * r + 0.587 * g + 0.114 * b > 150;
-};
-
-function paintKey(el, letter) {
-  const c = keyboard[letter];
-  el.style.background = c ?? "";
-  el.style.color = c ? (isLight(c) ? "#1b1426" : "#fff") : "";
-}
-
-function keyCap(letter, props = {}) {
-  const el = h("button", { class: "key", "aria-label": letter, ...props }, letter);
-  paintKey(el, letter);
-  return el;
-}
-
-const keyLine = (l) => { const w = keyWord(l); return w ? `${l}! ${l} is for ${w}!` : `${l}!`; };
-
-function keyShop() {
-  keyMission ??= makeKeyMission();
-  const m = keyMission;
-  let popped = null;
-  const keys = {};
-  const workbench = h("div", { class: "workbench" });
-  const missionCard = h("div", { class: "card mission" });
-
-  const drawMission = () => {
-    const done = missionDone(keyboard, m);
-    missionCard.replaceChildren(
-      h("div", { class: "sub" }, done ? "🎉 Mission done!" : "🎯 Mission"),
-      h("div", { class: "prompt" }, m.text),
-      h("div", { class: "mission-keys" }, m.letters.map((l) => {
-        const cap = keyCap(l, { tabindex: "-1" });
-        cap.classList.add("mini");
-        if (keyboard[l] === m.color) cap.classList.add("got");
-        return cap;
-      })),
-      done
-        ? h("button", { class: "next", onclick: () => { keyMission = makeKeyMission(); keyShop(); } }, "Next mission ➡️")
-        : sayButton(m.text));
-  };
-
-  const cups = () => {
-    const paints = PAINTS.some((p) => p.color === m.color) ? PAINTS : [{ name: m.colorName, color: m.color }, ...PAINTS];
-    return paints.map((p) => h("button", {
-      class: p.color === m.color ? "cup star" : "cup",
-      style: { background: p.color },
-      "aria-label": p.name,
-      onclick: () => paintPopped(p),
-    }));
-  };
-
-  const drawBench = () => {
-    if (!popped) {
-      workbench.replaceChildren(h("div", { class: "sub" }, "👆 Tap a key to pop it off!"));
-      return;
-    }
-    const big = keyCap(popped, { onclick: () => speak(keyLine(popped)) });
-    big.classList.add("giant-key");
-    workbench.replaceChildren(big, h("div", { class: "sub" }, "🎨 Pick a paint!"), h("div", { class: "cups" }, cups()));
-  };
-
-  const wasDone = missionDone(keyboard, m);
-  function paintPopped(p) {
-    const l = popped;
-    keyboard[l] = p.color;
-    store.set("keyboard", keyboard);
-    popped = null;
-    const k = keys[l];
-    k.classList.remove("popped");
-    paintKey(k, l);
-    k.classList.add("snap");
-    setTimeout(() => k.classList.remove("snap"), 400);
-    click();
-    drawBench();
-    drawMission();
-    if (!wasDone && missionDone(keyboard, m)) celebrate(`Mission done! ${m.text.replace(/^Paint /, "You painted ")}`);
-    else say(`${p.name}! ${keyLine(l)}`);
-  }
-
-  const board = h("div", { class: "kb" }, KEY_ROWS.map((row) =>
-    h("div", { class: "kb-row" }, row.split("").map((l) => {
-      keys[l] = keyCap(l, {
-        onclick: () => {
-          if (popped) keys[popped].classList.remove("popped");
-          popped = popped === l ? null : l;
-          if (popped) { keys[l].classList.add("popped"); pop(); say(l); }
-          drawBench();
-        },
-      });
-      if (m.letters.includes(l)) keys[l].classList.add("target");
-      return keys[l];
-    }))));
-
-  drawMission();
-  drawBench();
-  screen("Key Shop ⌨️",
-    missionCard,
-    board,
-    workbench,
-    h("button", { class: "next pop-all", onclick: () => popAll(keys) }, "🫧 Pop them all!"));
-  if (!wasDone) say(m.text);
-}
-
-// All keys tumble off, then he puts them back A to Z.
-function popAll(keys) {
-  const letters = Object.keys(keys);
-  letters.forEach((l, i) => setTimeout(() => { keys[l].classList.add("gone"); pop(); }, i * 70));
-  setTimeout(() => fixBoard(shuffle(letters)), letters.length * 70 + 400);
-}
-
-function fixBoard(tray) {
-  const order = [...KEY_ROWS.join("")].sort();
-  let next = 0;
-  const slots = {};
-  const prompt = h("div", { class: "prompt" });
-  const ask = () => { prompt.textContent = `Find ${order[next]}!`; };
-
-  const board = h("div", { class: "kb" }, KEY_ROWS.map((row) =>
-    h("div", { class: "kb-row" }, row.split("").map((l) => (slots[l] = h("div", { class: "key slot" }, ""))))));
-
-  const trayEl = h("div", { class: "tray" }, tray.map((l) => {
-    const cap = keyCap(l, {
-      onclick: () => {
-        if (cap.disabled) return;
-        if (l !== order[next]) {
-          cap.classList.remove("wiggle");
-          void cap.offsetWidth;
-          cap.classList.add("wiggle");
-          say(`That's ${l}. Find ${order[next]}!`);
-          return;
-        }
-        cap.disabled = true;
-        cap.classList.add("used");
-        const placed = keyCap(l, { onclick: () => speak(keyLine(l)) });
-        placed.classList.add("snap");
-        slots[l].replaceWith(placed);
-        slots[l] = placed;
-        click();
-        next += 1;
-        if (next === order.length) {
-          prompt.textContent = "All fixed! 🎉";
-          celebrate("You put the whole keyboard back together!");
-          trayEl.replaceWith(h("button", { class: "next", onclick: keyShop }, "Back to the shop ⌨️"));
-        } else {
-          ask();
-          say(`${l}! Now find ${order[next]}!`);
-        }
-      },
-    });
-    return cap;
-  }));
-
-  ask();
-  screen("Key Shop ⌨️",
-    h("div", { class: "card" }, h("div", { class: "sub" }, "🫧 Uh oh, all the keys popped off!"), prompt,
-      h("button", { class: "say", onclick: () => speak(prompt.textContent) }, "🔊 Hear it")),
-    board,
-    trayEl);
-  say(`Uh oh, all the keys popped off! Let's put them back. Find ${order[0]}!`);
 }
 
 // ---------- routing ----------

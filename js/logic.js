@@ -128,12 +128,32 @@ export const PAINTS = [
   { name: "white", color: "#f4f0fa" },
 ];
 
+export const FINISHES = [
+  { id: "solid", label: "Plain" },
+  { id: "stripes", label: "Stripes" },
+  { id: "dots", label: "Polka dots" },
+  { id: "glitter", label: "Glitter" },
+  { id: "rainbow", label: "Rainbow" },
+  { id: "split", label: "Two-tone" },
+];
+const FINISH_IDS = new Set(FINISHES.map((f) => f.id));
+
 const HEX = /^#[0-9a-f]{6}$/i;
 const UPPER = /^[A-Z]$/;
 
+// Old saves stored a bare "#hex" per key; they become plain-finish keys.
+function loadKey(v) {
+  if (typeof v === "string") return HEX.test(v) ? { c: v, f: "solid" } : null;
+  if (!v || typeof v !== "object" || typeof v.c !== "string" || !HEX.test(v.c)) return null;
+  return { c: v.c, f: FINISH_IDS.has(v.f) ? v.f : "solid" };
+}
+
 export function loadKeyboard(raw) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
-  return Object.fromEntries(Object.entries(raw).filter(([k, v]) => UPPER.test(k) && typeof v === "string" && HEX.test(v)));
+  return Object.fromEntries(Object.entries(raw)
+    .filter(([k]) => UPPER.test(k))
+    .map(([k, v]) => [k, loadKey(v)])
+    .filter(([, v]) => v));
 }
 
 export function keyWord(letter, rng = Math.random) {
@@ -141,24 +161,32 @@ export function keyWord(letter, rng = Math.random) {
   return words.length ? pick(words, rng) : null;
 }
 
-export const KEY_MISSION_TYPES = ["vowels", "spell", "letter"];
+export const KEY_MISSION_TYPES = ["vowels", "spell", "letter", "finish"];
 const lettersOf = (name) => [...new Set(name.toUpperCase().replace(/[^A-Z]/g, ""))];
 const SPELLABLE = STORES.filter((s) => { const n = s.name.replace(/[^a-z]/gi, "").length; return n >= 3 && n <= 7; });
 
 export function makeKeyMission(rng = Math.random, type = pick(KEY_MISSION_TYPES, rng)) {
-  if (type === "spell") {
+  if (type === "spell" || type === "finish") {
     const s = pick(SPELLABLE, rng);
     const letters = lettersOf(s.name);
+    const spelled = letters.join("-");
+    if (type === "finish") {
+      const finish = pick(FINISHES.slice(1), rng);
+      return { type, letters, color: null, finish: finish.id, word: s.name, text: `Give ${spelled} ${finish.label.toLowerCase()} keys!` };
+    }
     const colorName = `${s.name} color`;
-    return { type, letters, color: s.color, colorName, word: s.name, text: `Paint ${letters.join("-")} ${colorName}!` };
+    return { type, letters, color: s.color, colorName, finish: null, word: s.name, text: `Paint ${spelled} ${colorName}!` };
   }
   const paint = pick(PAINTS, rng);
   if (type === "vowels") {
-    return { type, letters: ["A", "E", "I", "O", "U"], color: paint.color, colorName: paint.name, text: `Paint all the vowels ${paint.name}!` };
+    return { type, letters: ["A", "E", "I", "O", "U"], color: paint.color, colorName: paint.name, finish: null, text: `Paint all the vowels ${paint.name}!` };
   }
   const letter = pick(ALPHABET.filter((l) => keyWord(l, rng)), rng);
   const word = keyWord(letter, rng);
-  return { type, letters: [letter], color: paint.color, colorName: paint.name, word, text: `Paint ${letter} for ${word} ${paint.name}!` };
+  return { type, letters: [letter], color: paint.color, colorName: paint.name, finish: null, word, text: `Paint ${letter} for ${word} ${paint.name}!` };
 }
 
-export const missionDone = (board, mission) => mission.letters.every((l) => board[l] === mission.color);
+export const keyMeetsMission = (key, mission) =>
+  Boolean(key) && (!mission.color || key.c === mission.color) && (!mission.finish || key.f === mission.finish);
+
+export const missionDone = (board, mission) => mission.letters.every((l) => keyMeetsMission(board[l], mission));

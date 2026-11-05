@@ -24,6 +24,7 @@ icon.svg
 sw.js                 service worker: offline. Own files network-first (deploys show up at once), Wikipedia images cache-first. Add new app files to SHELL_FILES.
 js/data.js            STATES, KINDS, STORES, WORDS, CATEGORY_INFO, VIDEO_QUESTIONS, VIDEO_CHANNELS
 js/logic.js           pure, testable: question generators, letter helpers, parseYouTubeId
+js/keyshop.js         Key Shop game (canvas painting, synthesized sounds, animations); gets h/screen/say/... from app.js
 js/app.js             DOM: h() helper, speech/sounds/confetti, stars, screens, hash router
 test/logic.test.js    node:test, table-driven, seeded RNG
 ```
@@ -42,7 +43,7 @@ Flow: `location.hash` → `route()` → `GAMES[i].run()` → `screen(title, ...n
 | friends | Character profiles with show tabs (`FRIEND_SETS`): LBB (`LBB_CHARACTERS`), Sing (`SING_CHARACTERS`, pictures reuse `SING_VIDEOS` thumbnails), Learning Station (`LEARNING_STATION_CHARACTERS`: Don, Laurie, Jan; picture = official Tony Chestnut cartoon, hats labeled with names). Tap a friend → facts, tap a fact to hear it |
 | guessWho | "I am a koala. Who am I?" → 4 character picture choices (3 on the Station tab, which only has 3 people). Tabs: Mixed / Sing / LBB / Station (`GUESS_WHO_SETS`); Mixed (`makeMixedCharacterQuestion`) puts at least one other show in every round's choices, but never a same-emoji friend from another show (LBB Pig vs Rosita). Clues are `*_CHARACTERS[].clues` (first person, unique across all shows, never say the answer's own name; tests enforce). Learning Station clues name the other members so each fits one person |
 | bigNumbers | `BIG_NUMBERS` (data.js) one → googol. Climb tab: step up/down, rainbow zero groups, fact. Quiz tab (`makeBigNumberQuestion`): name it / pick the number / count zeros / which is bigger, then the fact card. Facts must be checkable (seconds math, published estimates) |
-| keyShop | Inspired by DIY keycap-painting videos. QWERTY board (`KEY_ROWS`): tap a key → it pops up → pick a paint (`PAINTS`) → snaps back, "P is for Publix" (`keyWord`). Paint saved in localStorage `keyboard`. Mission card (`makeKeyMission`): paint the vowels / spell a store in its brand color / one letter. "Pop them all" → keys scatter into a tray, he puts them back A→Z |
+| keyShop | `js/keyshop.js`. Inspired by DIY keycap-painting videos. 3D keycaps on a case (`KEY_ROWS`); tap → wire puller lifts the cap, revealing a switch → paint studio: pick a paint pot (`PAINTS`) + style (`FINISHES`: plain/stripes/dots/glitter/rainbow/two-tone), rub the big key with a finger (canvas; auto-finishes at 80% covered, "Finish it" button from 30%) → sparkle, cap drops back with a snap, "P is for Publix" (`keyWord`). All sounds synthesized (thock, pop, snap, brush swish, sparkle). Missions (`makeKeyMission`): vowels / spell a store in its brand color / one letter / spell a store in a style. 💡 RGB underglow toggle. "Pop them all" → keys tumble off, he rebuilds A→Z |
 | videoStation | parent adds YouTube links (localStorage) → embed (youtube-nocookie) + thinking questions |
 
 To add a game: write a `run` function using `screen()`, add an entry to `GAMES`. Home tiles are a 2-col grid; `wide: true` tiles span full width. Keep the half-width tiles an even count.
@@ -61,7 +62,7 @@ To add a game: write a `run` function using `screen()`, add an entry to `GAMES`.
 
 ## localStorage keys
 
-`stars` (number), `narration` (bool), `videos` ([{id,title,questions[]}]), `storeImages` ({wiki: url|""}), `keyboard` ({A: "#hex"}, cleaned by `loadKeyboard`).
+`stars` (number), `narration` (bool), `videos` ([{id,title,questions[]}]), `storeImages` ({wiki: url|""}), `keyboard` ({A: {c: "#hex", f: finishId}}; old bare "#hex" saves migrate in `loadKeyboard`).
 
 ## Commands
 

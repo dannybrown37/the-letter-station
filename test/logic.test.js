@@ -5,7 +5,7 @@ import {
   makeStoreQuestion, makeYesNoQuestion, storesInState, parseYouTubeId, shuffle, checkLetterAnswer,
   isDeadThumb, mergeVideos, makeCharacterQuestion, makeMixedCharacterQuestion,
   bigNumberText, makeBigNumberQuestion, BIG_QUIZ_TYPES,
-  ALPHABET, KEY_ROWS, PAINTS, loadKeyboard, keyWord, makeKeyMission, KEY_MISSION_TYPES, missionDone,
+  ALPHABET, KEY_ROWS, PAINTS, loadKeyboard, keyWord, makeKeyMission, KEY_MISSION_TYPES, missionDone, FINISHES,
 } from "../js/logic.js";
 import { BIG_NUMBERS, STATES, STORES, WORDS, KINDS, SING_VIDEOS, LBB_CHARACTERS, SING_CHARACTERS, LEARNING_STATION_CHARACTERS } from "../js/data.js";
 
@@ -319,14 +319,22 @@ test("PAINTS are hex colors with unique names", () => {
   assert.equal(new Set(PAINTS.map((p) => p.name)).size, PAINTS.length);
 });
 
+test("FINISHES have unique ids and labels", () => {
+  assert.equal(new Set(FINISHES.map((f) => f.id)).size, FINISHES.length);
+  assert.ok(FINISHES.every((f) => f.label && f.id));
+  assert.equal(FINISHES[0].id, "solid");
+});
+
 for (const [raw, expected] of [
   [null, {}],
   ["junk", {}],
   [[1, 2], {}],
-  [{ A: "#ff0000", b: "#00ff00", "1": "#000000", C: "red", D: "#12345" }, { A: "#ff0000" }],
-  [{ Q: "#ABCDEF" }, { Q: "#ABCDEF" }],
+  [{ A: "#ff0000", b: "#00ff00", "1": "#000000", C: "red", D: "#12345" }, { A: { c: "#ff0000", f: "solid" } }],
+  [{ Q: { c: "#ABCDEF", f: "dots" } }, { Q: { c: "#ABCDEF", f: "dots" } }],
+  [{ Q: { c: "#ABCDEF", f: "lava" } }, { Q: { c: "#ABCDEF", f: "solid" } }],
+  [{ Q: { c: "nope", f: "dots" }, R: { f: "dots" }, S: null }, {}],
 ]) {
-  test(`loadKeyboard(${JSON.stringify(raw)}) keeps only A-Z hex colors`, () => {
+  test(`loadKeyboard(${JSON.stringify(raw)}) keeps only A-Z keys with a hex color and known finish`, () => {
     assert.deepEqual(loadKeyboard(raw), expected);
   });
 }
@@ -340,29 +348,42 @@ test("keyWord gives a word starting with the letter, or null", () => {
   assert.equal(firstLetter(keyWord("P", rng)), "P");
 });
 
+const finishIds = FINISHES.map((f) => f.id);
 for (const type of KEY_MISSION_TYPES) {
-  test(`makeKeyMission ${type}: valid letters and color`, () => {
+  test(`makeKeyMission ${type}: valid letters and goal`, () => {
     const rng = seeded(11);
     for (let i = 0; i < 100; i++) {
       const m = makeKeyMission(rng, type);
       assert.equal(m.type, type);
+      assert.ok(m.text);
       assert.ok(m.letters.length > 0);
       assert.equal(new Set(m.letters).size, m.letters.length);
       assert.ok(m.letters.every((l) => ALPHABET.includes(l)));
-      assert.match(m.color, /^#[0-9a-f]{6}$/i);
-      assert.ok(m.text && m.colorName);
+      if (type === "finish") {
+        assert.equal(m.color, null);
+        assert.ok(finishIds.includes(m.finish) && m.finish !== "solid");
+      } else {
+        assert.match(m.color, /^#[0-9a-f]{6}$/i);
+        assert.ok(m.colorName);
+        assert.equal(m.finish, null);
+      }
       if (type === "vowels") assert.deepEqual(m.letters, ["A", "E", "I", "O", "U"]);
-      if (type === "spell") assert.ok(m.letters.length <= 7);
+      if (type === "spell" || type === "finish") assert.ok(m.letters.length <= 7);
     }
   });
 }
 
-test("missionDone only when every mission letter has the mission color", () => {
-  const m = { letters: ["A", "B"], color: "#111111" };
-  assert.equal(missionDone({ A: "#111111" }, m), false);
-  assert.equal(missionDone({ A: "#111111", B: "#222222" }, m), false);
-  assert.equal(missionDone({ A: "#111111", B: "#111111", C: "#333333" }, m), true);
-});
+for (const [name, board, mission, expected] of [
+  ["missing key", { A: { c: "#111111", f: "solid" } }, { letters: ["A", "B"], color: "#111111", finish: null }, false],
+  ["wrong color", { A: { c: "#111111", f: "solid" }, B: { c: "#222222", f: "solid" } }, { letters: ["A", "B"], color: "#111111", finish: null }, false],
+  ["color match, any finish", { A: { c: "#111111", f: "dots" }, B: { c: "#111111", f: "solid" } }, { letters: ["A", "B"], color: "#111111", finish: null }, true],
+  ["finish match, any color", { A: { c: "#111111", f: "glitter" }, B: { c: "#999999", f: "glitter" } }, { letters: ["A", "B"], color: null, finish: "glitter" }, true],
+  ["wrong finish", { A: { c: "#111111", f: "glitter" }, B: { c: "#999999", f: "dots" } }, { letters: ["A", "B"], color: null, finish: "glitter" }, false],
+]) {
+  test(`missionDone: ${name}`, () => {
+    assert.equal(missionDone(board, mission), expected);
+  });
+}
 
 test("every store color is a 6-digit hex (spell missions paint with it)", () => {
   for (const s of STORES) assert.match(s.color, /^#[0-9a-f]{6}$/i, s.name);
