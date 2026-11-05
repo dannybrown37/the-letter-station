@@ -4,8 +4,9 @@ import {
   firstLetter, wordsForLetter, playableLetters, makeLetterQuestion,
   makeStoreQuestion, makeYesNoQuestion, storesInState, parseYouTubeId, shuffle, checkLetterAnswer,
   isDeadThumb, mergeVideos, makeCharacterQuestion, makeMixedCharacterQuestion,
+  bigNumberText, makeBigNumberQuestion, BIG_QUIZ_TYPES,
 } from "../js/logic.js";
-import { STATES, STORES, WORDS, KINDS, SING_VIDEOS, LBB_CHARACTERS, SING_CHARACTERS, LEARNING_STATION_CHARACTERS } from "../js/data.js";
+import { BIG_NUMBERS, STATES, STORES, WORDS, KINDS, SING_VIDEOS, LBB_CHARACTERS, SING_CHARACTERS, LEARNING_STATION_CHARACTERS } from "../js/data.js";
 
 const seeded = (seed) => () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
 
@@ -267,4 +268,43 @@ test("LEARNING_STATION_CHARACTERS has Don, Laurie and Jan", () => {
 test("LBB_CHARACTERS has the friends he asked for", () => {
   const names = LBB_CHARACTERS.map((c) => c.name);
   for (const n of ["Jacus", "Pig", "Daisy", "William"]) assert.ok(names.includes(n), `missing ${n}`);
+});
+
+test("BIG_NUMBERS climb in order with unique names", () => {
+  for (let i = 1; i < BIG_NUMBERS.length; i++) assert.ok(BIG_NUMBERS[i].zeros > BIG_NUMBERS[i - 1].zeros);
+  assert.equal(new Set(BIG_NUMBERS.map((n) => n.name)).size, BIG_NUMBERS.length);
+  assert.ok(BIG_NUMBERS.every((n) => n.fact && n.emoji));
+});
+
+for (const [zeros, expected] of [[0, "1"], [1, "10"], [3, "1,000"], [4, "10,000"], [6, "1,000,000"], [9, "1,000,000,000"]]) {
+  test(`bigNumberText(${zeros}) = ${expected}`, () => {
+    assert.equal(bigNumberText(zeros), expected);
+  });
+}
+
+test("bigNumberText(100) is a googol: 1 then 100 zeros", () => {
+  const t = bigNumberText(100);
+  assert.equal(t.replace(/,/g, ""), "1" + "0".repeat(100));
+  assert.match(t, /^10,000(,000)+$/);
+});
+
+for (const type of BIG_QUIZ_TYPES) {
+  test(`makeBigNumberQuestion ${type}: answer in unique choices`, () => {
+    const rng = seeded(7);
+    for (let i = 0; i < 200; i++) {
+      const q = makeBigNumberQuestion(rng, type);
+      assert.equal(q.type, type);
+      assert.ok(q.choices.includes(q.answer));
+      assert.equal(new Set(q.choices).size, q.choices.length);
+      assert.equal(q.choices.length, type === "bigger" ? 2 : 4);
+      if (type === "bigger") assert.ok(q.choices.every((c) => c.zeros <= q.answer.zeros));
+      if (type === "number") assert.ok(q.choices.every((c) => c.zeros <= 15));
+    }
+  });
+}
+
+test("makeBigNumberQuestion picks a random type when none given", () => {
+  const rng = seeded(3);
+  const types = new Set(Array.from({ length: 100 }, () => makeBigNumberQuestion(rng).type));
+  assert.deepEqual([...types].sort(), [...BIG_QUIZ_TYPES].sort());
 });

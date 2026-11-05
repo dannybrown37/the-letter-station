@@ -1,4 +1,4 @@
-import { STATES, STORES, WORDS } from "./data.js";
+import { BIG_NUMBERS, STATES, STORES, WORDS } from "./data.js";
 
 export const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
@@ -102,3 +102,15 @@ export const mergeVideos = (saved, pack) => {
   const have = new Set(saved.map((v) => v.id));
   return [...saved, ...pack.filter((v) => !have.has(v.id))];
 };
+
+export const bigNumberText = (zeros) => ("1" + "0".repeat(zeros)).replace(/\B(?=(\d{3})+$)/g, ",");
+
+export const BIG_QUIZ_TYPES = ["name", "number", "zeros", "bigger"];
+const SHORT_BIG = BIG_NUMBERS.filter((n) => n.zeros <= 15);
+
+export function makeBigNumberQuestion(rng = Math.random, type = pick(BIG_QUIZ_TYPES, rng)) {
+  const pool = type === "number" ? SHORT_BIG : BIG_NUMBERS;
+  const picks = shuffle(pool, rng).slice(0, type === "bigger" ? 2 : 4);
+  const answer = type === "bigger" ? picks.reduce((a, b) => (b.zeros > a.zeros ? b : a)) : picks[0];
+  return { type, answer, choices: shuffle(picks, rng) };
+}

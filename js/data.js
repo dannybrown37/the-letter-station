@@ -324,3 +324,24 @@ export const LEARNING_STATION_CHARACTERS = [
     facts: ["Jan sings songs in The Learning Station.", "Jan is Don and Laurie's friend.", "Jan joined the band in Florida.", "Jan and Don made music in a recording studio."],
     clues: ["I am Don and Laurie's friend.", "I joined Don and Laurie's band in Florida.", "I made music in a recording studio with Don."] },
 ];
+
+// Facts are rounded on purpose; each was checked (seconds math, ant/atom/bacteria estimates from published studies).
+export const BIG_NUMBERS = [
+  { name: "One", zeros: 0, emoji: "👃", fact: "You have one nose!" },
+  { name: "Ten", zeros: 1, emoji: "🖐️", fact: "You have ten fingers. Count them!" },
+  { name: "One Hundred", zeros: 2, emoji: "🪙", fact: "One hundred pennies make one dollar." },
+  { name: "One Thousand", zeros: 3, emoji: "⏱️", fact: "One thousand seconds is about 17 minutes." },
+  { name: "Ten Thousand", zeros: 4, emoji: "🕒", fact: "Ten thousand seconds is almost 3 hours." },
+  { name: "One Hundred Thousand", zeros: 5, emoji: "📅", fact: "One hundred thousand seconds is more than a whole day!" },
+  { name: "One Million", zeros: 6, emoji: "🗓️", fact: "One million seconds is about 11 and a half days." },
+  { name: "One Billion", zeros: 9, emoji: "🎂", fact: "One billion seconds is about 32 years. A billion is a thousand millions!" },
+  { name: "One Trillion", zeros: 12, emoji: "🦕", fact: "One trillion seconds is about 32 thousand years!" },
+  { name: "One Quadrillion", zeros: 15, emoji: "🐜", fact: "Scientists think there are about 20 quadrillion ants on Earth!" },
+  { name: "One Quintillion", zeros: 18, emoji: "🤯", fact: "A quintillion is a billion billions!" },
+  { name: "One Sextillion", zeros: 21, emoji: "💧", fact: "One drop of water has more than a sextillion tiny water molecules!" },
+  { name: "One Septillion", zeros: 24, emoji: "✨", fact: "There might be a septillion stars in the whole universe!" },
+  { name: "One Octillion", zeros: 27, emoji: "🧍", fact: "Your body is made of about 7 octillion tiny atoms!" },
+  { name: "One Nonillion", zeros: 30, emoji: "🦠", fact: "There are about 5 nonillion tiny bacteria on Earth!" },
+  { name: "One Decillion", zeros: 33, emoji: "🔟", fact: "A decillion is a one with 33 zeros!" },
+  { name: "A Googol", zeros: 100, emoji: "🚀", fact: "A googol is a one with 100 zeros! Google is named after it. That's more than all the atoms in the universe!" },
+];

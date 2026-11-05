@@ -1,8 +1,9 @@
-import { STATES, STORES, KINDS, CATEGORY_INFO, VIDEO_QUESTIONS, VIDEO_CHANNELS, SING_VIDEOS, LBB_CHARACTERS, SING_CHARACTERS, LEARNING_STATION_CHARACTERS } from "./data.js";
+import { BIG_NUMBERS, STATES, STORES, KINDS, CATEGORY_INFO, VIDEO_QUESTIONS, VIDEO_CHANNELS, SING_VIDEOS, LBB_CHARACTERS, SING_CHARACTERS, LEARNING_STATION_CHARACTERS } from "./data.js";
 import {
   ALPHABET, pick, shuffle, wordsForLetter, makeLetterQuestion,
   makeStoreQuestion, makeYesNoQuestion, storesInState, parseYouTubeId,
   checkLetterAnswer, firstLetter, isDeadThumb, mergeVideos, makeCharacterQuestion, makeMixedCharacterQuestion,
+  bigNumberText, makeBigNumberQuestion,
 } from "./logic.js";
 
 const byName = (a, b) => a.name.localeCompare(b.name);
@@ -33,7 +34,7 @@ function h(tag, props = {}, ...kids) {
     if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
     else if (k === "style") Object.assign(el.style, v);
     else if (k === "class") el.className = v;
-    else el.setAttribute(k, v);
+    else if (v !== false) el.setAttribute(k, v === true ? "" : v);
   }
   for (const kid of kids.flat()) if (kid != null) el.append(kid);
   return el;
@@ -188,6 +189,7 @@ const GAMES = [
   { id: "storeFinder", label: "Where Is It?", emoji: "🗺️", color: "#ff5ca8", run: storeFinder },
   { id: "friends", label: "Friends", emoji: "⭐", color: "#00b8a9", run: () => friendsScreen(), wide: true },
   { id: "guessWho", label: "Guess Who?", emoji: "❓", color: "#e05a5a", run: guessWho, wide: true },
+  { id: "bigNumbers", label: "Big Numbers", emoji: "🔢", color: "#8f6bff", run: bigNumbers, wide: true },
   { id: "videoStation", label: "Video Station", emoji: "📺", color: "#ffb800", run: videoStation, wide: true },
 ];
 
@@ -617,6 +619,88 @@ function guessWho() {
     h("div", { class: "card" },
       h("div", { class: "prompt" }, `“${q.clue}”`),
       h("div", { class: "sub" }, "Who am I?"),
+      sayButton(prompt),
+      streakLine()),
+    btns,
+    result);
+  say(prompt);
+}
+
+// Each group of three zeros gets its own color so he can count the groups.
+function rainbowNumber(n) {
+  const text = bigNumberText(n.zeros);
+  const size = text.length > 40 ? "small" : text.length > 9 ? "mid" : "";
+  return h("button", { class: `big-number ${size}`, onclick: () => speak(n.name) },
+    text.split(",").map((g, i, all) => h("span", { style: { color: COLORS[i % COLORS.length] } }, g + (i < all.length - 1 ? "," : ""))));
+}
+
+const zerosLine = (n) => (n.zeros === 1 ? "1 zero" : `${n.zeros} zeros`);
+
+function bigFactCard(n) {
+  return h("div", { class: "card" },
+    h("div", { class: "giant" }, n.emoji),
+    rainbowNumber(n),
+    h("div", { class: "store-name" }, n.name),
+    h("div", { class: "kind" }, `${zerosLine(n)} 0️⃣`),
+    h("button", { class: "fact", onclick: () => speak(n.fact) }, n.fact));
+}
+
+let bigMode = "climb";
+let bigIndex = 0;
+
+function bigNumbers() {
+  const tabs = h("div", { class: "tabs" },
+    [["climb", "🧗 Climb"], ["quiz", "❓ Quiz"]].map(([k, lbl]) =>
+      h("button", { class: bigMode === k ? "on" : "", onclick: () => { bigMode = k; bigNumbers(); } }, lbl)));
+  bigMode === "climb" ? bigClimb(tabs) : bigQuiz(tabs);
+}
+
+function bigClimb(tabs) {
+  const n = BIG_NUMBERS[bigIndex];
+  const step = (d) => { bigIndex += d; bigNumbers(); };
+  const top = bigIndex === BIG_NUMBERS.length - 1;
+  screen("Big Numbers 🔢",
+    tabs,
+    h("div", { class: "ladder" }, BIG_NUMBERS.map((_, i) =>
+      h("span", { class: i <= bigIndex ? "rung on" : "rung" }))),
+    bigFactCard(n),
+    h("div", { class: "choices two" },
+      h("button", { class: "choice", disabled: bigIndex === 0, onclick: () => step(-1) }, "⬇️ Smaller"),
+      h("button", { class: "choice up", disabled: top, onclick: () => step(1) }, "Bigger ⬆️")),
+    top ? h("button", { class: "next", onclick: () => { bigIndex = 0; bigNumbers(); } }, "Start over 🔁") : "");
+  if (top) confetti(30);
+  say(`${n.name}! That's a one with ${zerosLine(n)}. ${n.fact}`);
+}
+
+const BIG_PROMPTS = {
+  name: () => "What is this number called?",
+  number: (q) => `Which one is ${q.answer.name}?`,
+  zeros: (q) => `How many zeros are in ${q.answer.name}?`,
+  bigger: () => "Which number is bigger?",
+};
+const BIG_LABELS = {
+  name: (c) => c.name,
+  number: (c) => bigNumberText(c.zeros),
+  zeros: (c) => String(c.zeros),
+  bigger: (c) => c.name,
+};
+
+function bigQuiz(tabs) {
+  const q = makeBigNumberQuestion();
+  const prompt = BIG_PROMPTS[q.type](q);
+  const result = h("div", { class: "reveal" });
+  const btns = choiceButtons(q.choices, {
+    cols: q.type === "zeros" || q.type === "bigger" ? 2 : 1,
+    label: BIG_LABELS[q.type],
+    isRight: (c) => c === q.answer,
+    rightLine: () => `${q.answer.name} has ${zerosLine(q.answer)}! ${q.answer.fact}`,
+    onRight: () => result.replaceChildren(bigFactCard(q.answer), nextButton(bigNumbers)),
+  });
+  screen("Big Numbers 🔢",
+    tabs,
+    h("div", { class: "card" },
+      q.type === "name" ? rainbowNumber(q.answer) : "",
+      h("div", { class: "prompt" }, prompt),
       sayButton(prompt),
       streakLine()),
     btns,
