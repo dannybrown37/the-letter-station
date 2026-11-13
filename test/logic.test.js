@@ -116,7 +116,11 @@ test("data: every store has a known kind and a valid Wikipedia title if any", ()
   }
 });
 
-for (const [kind, word] of [["grocery", "Grocery"], ["gas", "Gas"], ["restaurant", "Restaurant"]]) {
+for (const brand of ["Hyatt Place", "Hyatt House", "Hyatt Regency", "Grand Hyatt", "Alila"]) {
+  test(`${brand} is a hotel in STORES`, () => assert.equal(STORES.find((s) => s.name === brand)?.kind, "hotel"));
+}
+
+for (const [kind, word] of [["grocery", "Grocery"], ["gas", "Gas"], ["restaurant", "Restaurant"], ["hotel", "Hotel"]]) {
   test(`KINDS.${kind} label mentions ${word}`, () => assert.match(KINDS[kind].label, new RegExp(word)));
 }
 

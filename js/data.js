@@ -20,6 +20,7 @@ export const KINDS = {
   craft: { label: "Craft store", emoji: "🎨", blurb: "art supplies, yarn, and decorations" },
   furniture: { label: "Furniture store", emoji: "🛋️", blurb: "beds, couches, tables, and Swedish meatballs" },
   warehouse: { label: "Warehouse club", emoji: "📦", blurb: "a giant store that sells big packs of everything" },
+  hotel: { label: "Hotel", emoji: "🏨", blurb: "a place to sleep when you go on a trip" },
 };
 
 const ALL = Object.keys(STATES);
@@ -68,20 +69,27 @@ export const STORES = [
   { name: "Mission BBQ", wiki: "Mission_BBQ", emoji: "🇺🇸", color: "#b22234", kind: "restaurant", states: ["AZ", "CO", "CT", "DE", "FL", "IL", "IN", "IA", "KY", "MD", "MI", "NV", "NJ", "NY", "NC", "OH", "OK", "PA", "SC", "TN", "UT", "VA", "WV", "WI"] },
   { name: "R&R BBQ", emoji: "🍖", color: "#5d2e0c", kind: "restaurant", states: ["UT", "ID"] },
   { name: "Cafe Rio", wiki: "Cafe_Rio", emoji: "🌯", color: "#c8102e", kind: "restaurant", states: ["UT", "AZ", "CA", "CO", "ID", "MD", "MT", "NV", "VA", "WA", "WY"] },
+  // Hyatt brands: ScrapeHero location reports (Oct 16 2026); Alila from its Wikipedia property table.
+  { name: "Hyatt Place", emoji: "🏨", color: "#00838f", kind: "hotel", states: allExcept("VT", "ND", "NH", "WV") },
+  { name: "Hyatt House", emoji: "🏡", color: "#5a8f29", kind: "hotel", states: ["AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "IL", "IN", "KY", "LA", "MD", "MA", "MI", "MN", "MT", "NJ", "NM", "NY", "NC", "ND", "OH", "OR", "PA", "SC", "TN", "TX", "UT", "VA", "WA"] },
+  { name: "Hyatt Regency", emoji: "🏨", color: "#c8102e", kind: "hotel", states: ["AL", "AK", "AZ", "CA", "CO", "CT", "FL", "GA", "HI", "IL", "IN", "IA", "KS", "KY", "LA", "MD", "MA", "MN", "MO", "NV", "NJ", "NM", "NY", "OH", "OK", "OR", "PA", "SC", "TX", "UT", "VA", "WA", "WI"] },
+  { name: "Grand Hyatt", emoji: "🏰", color: "#b8860b", kind: "hotel", states: ["AZ", "CA", "CO", "FL", "GA", "HI", "TN", "TX", "UT", "WA"] },
+  { name: "Alila", wiki: "Alila_Hotels_and_Resorts", emoji: "🌴", color: "#7a6a4f", kind: "hotel", states: ["CA"] },
   { name: "Culver's", wiki: "Culver's", emoji: "🍦", color: "#005daa", kind: "restaurant", states: ["AL", "AZ", "AR", "CO", "FL", "GA", "ID", "IL", "IN", "IA", "KS", "KY", "MI", "MN", "MO", "NE", "NC", "ND", "OH", "SC", "SD", "TN", "TX", "UT", "WI", "WY"] },
 ];
 
 export const WORDS = {
   stores: [
-    "Ace Hardware", "Academy Sports", "Acme", "Albertsons", "Aldi", "Amazon", "American Eagle", "AutoZone",
+    "Ace Hardware", "Academy Sports", "Acme", "Albertsons", "Alila", "Aldi", "Amazon", "American Eagle", "AutoZone",
     "Barnes & Noble", "Bass Pro Shops", "Bath & Body Works", "Belk", "Best Buy", "Big Lots", "BJ's",
     "Boot Barn", "Build-A-Bear", "Burlington", "Busy Bee", "Buc-ee's",
     "Cabela's", "Carter's", "Casey's", "Circle K", "Claire's", "Costco", "Cub Foods", "CVS",
     "Dick's", "Dillard's", "Dollar General", "Dollar Tree", "DSW", "Dunham's",
     "Earth Fare", "Eddie Bauer", "Express", "Exxon",
     "Family Dollar", "Five Below", "Floor & Decor", "Food City", "Food Lion", "Foot Locker", "Fred Meyer", "Fresh Market", "Fry's",
-    "GameStop", "Gap", "Giant", "Giant Eagle", "Goodwill", "Grocery Outlet", "Guitar Center",
+    "GameStop", "Gap", "Giant", "Giant Eagle", "Goodwill", "Grand Hyatt", "Grocery Outlet", "Guitar Center",
     "H-E-B", "H&M", "Hallmark", "Hannaford", "Harbor Freight", "Harris Teeter", "Hobby Lobby", "Home Depot", "HomeGoods", "Hy-Vee",
+    "Hyatt House", "Hyatt Place", "Hyatt Regency",
     "IGA", "IKEA", "Ingles", "It'Sugar",
     "JCPenney", "JD Sports", "Jewel-Osco", "Joann", "Journeys",
     "King Soopers", "Kirkland's", "Kmart", "Kohl's", "Kroger", "Kwik Trip",
