@@ -4,7 +4,7 @@ import {
   firstLetter, wordsForLetter, playableLetters, makeLetterQuestion,
   makeStoreQuestion, makeYesNoQuestion, storesInState, parseYouTubeId, shuffle, checkLetterAnswer,
   isDeadThumb, mergeVideos, makeCharacterQuestion, makeMixedCharacterQuestion,
-  bigNumberText, makeBigNumberQuestion, BIG_QUIZ_TYPES,
+  bigNumberText, makeBigNumberQuestion, BIG_QUIZ_TYPES, HYATTS, HYATT_QUIZ_TYPES, makeHyattQuestion, roomNumber,
   ALPHABET, PAINTS, loadKeyboard, keyWord, makeKeyMission, KEY_MISSION_TYPES, missionDone, FINISHES, boardComplete, loadGallery, KEYBOARD, keyName,
 } from "../js/logic.js";
 import { BIG_NUMBERS, STATES, STORES, WORDS, KINDS, SING_VIDEOS, LBB_CHARACTERS, SING_CHARACTERS, LEARNING_STATION_CHARACTERS } from "../js/data.js";
@@ -495,4 +495,31 @@ for (const [seed, letter] of [[1, undefined], [7, "B"], [42, "Q"]]) {
     assert.ok(hits >= 2 && hits <= 3);
     assert.ok(r.balloons.every((b) => ALPHABET.includes(b)));
   });
+}
+
+test("every Hyatt has a US hotel count at least its state count", () => {
+  for (const s of HYATTS) assert.ok(Number.isInteger(s.hotels) && s.hotels >= s.states.length, s.name);
+});
+
+const correctFor = {
+  state: (q) => q.choices.filter((c) => q.store.states.includes(c) === q.has).length === 1,
+  brand: (q) => q.choices.filter((c) => c.states.includes(q.state)).length === 1 && q.answer.states.includes(q.state),
+  bigger: (q) => q.choices.every((c) => c.hotels < q.answer.hotels || c === q.answer),
+};
+for (const type of HYATT_QUIZ_TYPES) {
+  test(`makeHyattQuestion ${type}: exactly one right answer among unique choices`, () => {
+    const rng = seeded(11);
+    for (let i = 0; i < 300; i++) {
+      const q = makeHyattQuestion(rng, type);
+      assert.equal(q.type, type);
+      assert.ok(q.choices.includes(q.answer));
+      assert.equal(new Set(q.choices).size, q.choices.length);
+      assert.equal(q.choices.length, type === "bigger" ? 2 : 4);
+      assert.ok(correctFor[type](q), JSON.stringify({ type, a: q.answer.name ?? q.answer }));
+    }
+  });
+}
+
+for (const [rng, expected] of [[() => 0, 100], [() => 0.999, 1299]]) {
+  test(`roomNumber stays a real-looking room (${expected})`, () => assert.equal(roomNumber(rng), expected));
 }

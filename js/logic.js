@@ -55,6 +55,25 @@ export function makeStoreQuestion(rng = Math.random, store = pick(HUNTABLE_STORE
   return { store, has, answer, choices };
 }
 
+export const HYATTS = STORES.filter((s) => s.kind === "hotel");
+export const HYATT_QUIZ_TYPES = ["state", "brand", "bigger"];
+
+export function makeHyattQuestion(rng = Math.random, type = pick(HYATT_QUIZ_TYPES, rng)) {
+  if (type === "state") return { type, ...makeStoreQuestion(rng, pick(HYATTS, rng)) };
+  if (type === "brand") {
+    const askable = ALL_STATES.filter((c) => HYATTS.some((s) => s.states.includes(c)) && HYATTS.filter((s) => !s.states.includes(c)).length >= 3);
+    const state = pick(askable, rng);
+    const answer = pick(HYATTS.filter((s) => s.states.includes(state)), rng);
+    const others = shuffle(HYATTS.filter((s) => !s.states.includes(state)), rng).slice(0, 3);
+    return { type, state, answer, choices: shuffle([answer, ...others], rng) };
+  }
+  const a = pick(HYATTS, rng);
+  const b = pick(HYATTS.filter((s) => s.hotels !== a.hotels), rng);
+  return { type, answer: a.hotels > b.hotels ? a : b, choices: [a, b] };
+}
+
+export const roomNumber = (rng = Math.random) => (1 + Math.floor(rng() * 12)) * 100 + Math.floor(rng() * 100);
+
 export function makeYesNoQuestion(rng = Math.random) {
   const store = pick(STORES, rng);
   const state = rng() < 0.5 ? pick(store.states, rng) : pick(Object.keys(STATES), rng);

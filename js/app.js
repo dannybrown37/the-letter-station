@@ -3,7 +3,7 @@ import {
   ALPHABET, pick, shuffle, wordsForLetter, makeLetterQuestion,
   makeStoreQuestion, makeYesNoQuestion, storesInState, parseYouTubeId,
   checkLetterAnswer, firstLetter, isDeadThumb, mergeVideos, makeCharacterQuestion, makeMixedCharacterQuestion,
-  bigNumberText, makeBigNumberQuestion, makeBalloonRound,
+  bigNumberText, makeBigNumberQuestion, makeBalloonRound, HYATTS, makeHyattQuestion, roomNumber,
 } from "./logic.js";
 import { keyShop } from "./keyshop.js";
 
@@ -198,7 +198,7 @@ const GAMES = [
   { id: "bigNumbers", label: "Big Numbers", emoji: "🔢", color: "#6f5bd9", run: bigNumbers },
   { id: "keyShop", label: "Key Shop", emoji: "⌨️", color: "#d6408f", run: () => keyShop({ h, screen, say, speak, celebrate, store, audio: () => (audio ??= new AudioContext()) }) },
   { id: "videoStation", label: "Videos", emoji: "📺", color: "#e8a200", run: videoStation },
-  { id: "surprise", label: "Surprise!", emoji: "🎁", color: "#4a3f8c", run: () => { location.replace("#" + pick(GAMES.filter((g) => g.id !== "surprise" && g.id !== "videoStation")).id); } },
+  { id: "hyatt", label: "Hyatt Hotels", emoji: "🏨", color: "#1e88c8", run: hyattGame },
 ];
 
 function home() {
@@ -454,11 +454,8 @@ let explorerCat = Object.keys(CATEGORY_INFO)[0];
 let finderMode = "store";
 function storeFinder(selected) {
   const tabs = h("div", { class: "tabs" },
-    h("button", { class: finderMode === "store" ? "on" : "", onclick: () => { finderMode = "store"; storeFinder(); } }, "🛒 Store"),
-    h("button", { class: finderMode === "state" ? "on" : "", onclick: () => { finderMode = "state"; storeFinder(); } }, "🗺️ State"),
-    h("button", { class: finderMode === "hyatt" ? "on" : "", onclick: () => { finderMode = "hyatt"; storeFinder(); } }, "🏨 Hyatt"));
-
-  if (finderMode === "hyatt") return findYourHyatt(tabs, selected);
+    h("button", { class: finderMode === "store" ? "on" : "", onclick: () => { finderMode = "store"; storeFinder(); } }, "🛒 Pick a store"),
+    h("button", { class: finderMode === "state" ? "on" : "", onclick: () => { finderMode = "state"; storeFinder(); } }, "🗺️ Pick a state"));
 
   if (finderMode === "store") {
     const s = selected ?? STORES_AZ[0];
@@ -493,35 +490,144 @@ function storeFinder(selected) {
   if (selected) say(here.length ? `${STATES[code]} has ${listWords(here.map((s) => s.name))}.` : `${STATES[code]} doesn't have our special stores.`);
 }
 
-const HYATTS = STORES_AZ.filter((s) => s.kind === "hotel");
-let hyattBrand = HYATTS[0];
+// ---------- Hyatt Hotels ----------
+const HYATTS_AZ = [...HYATTS].sort(byName);
+const HYATT_TITLE = "Hyatt Hotels 🏨";
+let hyattMode = "map";
+let hyattBrand = HYATTS_AZ.find((s) => s.name === "Hyatt Regency");
 let hyattState = null;
+let tripState = null;
+const hyattsIn = (code) => HYATTS_AZ.filter((s) => s.states.includes(code));
+const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+const hotelsLine = (s) => `${s.name} has ${plural(s.hotels, "hotel")} in the U.S.`;
+const brandChip = (s, onclick, on = true) =>
+  h("button", { class: on ? "chip on" : "chip", style: on ? { background: s.color } : {}, onclick }, `${s.emoji} ${s.name}`);
 
-function findYourHyatt(tabs, picked) {
+function hyattGame() {
+  const tabs = h("div", { class: "tabs" },
+    [["map", "🗺️ Map"], ["quiz", "❓ Quiz"], ["stay", "🛎️ Stay"], ["count", "📊 Count"]].map(([k, lbl]) =>
+      h("button", { class: hyattMode === k ? "on" : "", onclick: () => { hyattMode = k; hyattGame(); } }, lbl)));
+  ({ map: hyattMap, quiz: hyattQuiz, stay: hyattStay, count: hyattCount })[hyattMode](tabs);
+}
+
+function hyattMap(tabs, picked) {
   if (HYATTS.includes(picked)) hyattBrand = picked;
   else if (STATES[picked]) hyattState = picked;
   const b = hyattBrand;
-  const here = hyattState ? HYATTS.filter((s) => s.states.includes(hyattState)) : [];
-  screen("Find Your Hyatt 🏨", tabs,
-    strip(HYATTS.map((s) => h("button", {
-      class: s === b ? "chip on" : "chip",
-      style: s === b ? { background: s.color } : {},
-      onclick: () => findYourHyatt(tabs, s),
-    }, `${s.emoji} ${s.name}`))),
+  const here = hyattState ? hyattsIn(hyattState) : [];
+  screen(HYATT_TITLE, tabs,
+    strip(HYATTS_AZ.map((s) => brandChip(s, () => hyattMap(tabs, s), s === b))),
     h("div", { class: "card compact" },
-      storeHeader(b, h("div", { class: "sub" }, `in ${b.states.length} state${b.states.length > 1 ? "s" : ""}`)),
-      stateMap((c) => (b.states.includes(c) ? b.color : null), { ring: hyattState, onTap: (c) => findYourHyatt(tabs, c) })),
+      storeHeader(b, h("div", { class: "sub" }, `${plural(b.hotels, "hotel")} · ${plural(b.states.length, "state")}`)),
+      stateMap((c) => (b.states.includes(c) ? b.color : null), { ring: hyattState, onTap: (c) => hyattMap(tabs, c) })),
     h("div", { class: "card" },
       hyattState
         ? [h("div", { class: "prompt" }, `Hyatts in ${STATES[hyattState]}`),
           here.length
-            ? h("div", { class: "chips small" }, here.map((s) => h("button", {
-              class: "chip on", style: { background: s.color }, onclick: () => findYourHyatt(tabs, s),
-            }, `${s.emoji} ${s.name}`)))
+            ? h("div", { class: "chips small" }, here.map((s) => brandChip(s, () => hyattMap(tabs, s))))
             : h("div", { class: "sub" }, "No Hyatts on our list here yet.")]
         : h("div", { class: "sub" }, "Tap a state to see its Hyatts!")));
-  if (HYATTS.includes(picked)) say(`${b.name} is in ${b.states.length} states.`);
-  else if (hyattState && STATES[picked]) say(here.length ? `${STATES[hyattState]} has ${listWords(here.map((s) => s.name))}.` : `${STATES[hyattState]} doesn't have a Hyatt on our list.`);
+  if (HYATTS.includes(picked)) say(`${hotelsLine(b)} It's in ${plural(b.states.length, "state")}.`);
+  else if (STATES[picked]) say(here.length ? `${STATES[hyattState]} has ${listWords(here.map((s) => s.name))}.` : `${STATES[hyattState]} doesn't have a Hyatt on our list.`);
+}
+
+function hyattQuiz(tabs) {
+  const q = makeHyattQuestion();
+  const result = h("div", { class: "reveal" });
+  const again = () => nextButton(hyattGame);
+  const name = (c) => `${c.emoji} ${c.name}`;
+  let top = null;
+  let prompt;
+  let btns;
+  if (q.type === "state") {
+    prompt = `Which state ${q.has ? "has" : "does not have"} ${aOrAn(q.store.name)}?`;
+    top = storeHeader(q.store);
+    btns = choiceButtons(q.choices, {
+      cols: 2,
+      label: (c) => STATES[c],
+      isRight: (c) => q.store.states.includes(c) === q.has,
+      rightLine: (c) => hasLine(q.store, c),
+      onRight: () => showResult(result,
+        h("div", { class: "card compact" }, stateMap((c) => (q.store.states.includes(c) ? q.store.color : null), { ring: q.answer })), again()),
+    });
+  } else if (q.type === "brand") {
+    prompt = `Which Hyatt is in ${STATES[q.state]}?`;
+    top = stateMap((c) => (c === q.state ? "#8f6bff" : null));
+    btns = choiceButtons(q.choices, {
+      label: name,
+      isRight: (c) => c === q.answer,
+      rightLine: (c) => `${STATES[q.state]} has ${c.name}!`,
+      onRight: () => showResult(result, h("div", { class: "card" }, storeHeader(q.answer, h("div", { class: "sub" }, hotelsLine(q.answer)))), again()),
+    });
+  } else {
+    prompt = "Which Hyatt has more hotels?";
+    const other = q.choices.find((c) => c !== q.answer);
+    btns = choiceButtons(q.choices, {
+      cols: 2,
+      label: name,
+      isRight: (c) => c === q.answer,
+      rightLine: () => `${q.answer.name} has ${plural(q.answer.hotels, "hotel")}. ${other.name} has ${other.hotels}.`,
+      onRight: () => showResult(result, countBars(q.choices), again()),
+    });
+  }
+  screen(HYATT_TITLE, tabs,
+    h("div", { class: "card" }, top, h("div", { class: "prompt" }, prompt), sayButton(prompt), streakLine()),
+    btns,
+    result);
+  say(prompt);
+}
+
+function countBars(list) {
+  const max = Math.max(...list.map((s) => s.hotels));
+  return h("div", { class: "card bars" }, list.map((s) =>
+    h("button", { class: "bar-row", onclick: () => speak(hotelsLine(s)) },
+      h("span", { class: "bar-name", style: brandText(s.color) }, `${s.emoji} ${s.name}`),
+      h("b", {}, String(s.hotels)),
+      h("span", { class: "bar", style: { "--w": `${Math.max(3, (s.hotels / max) * 100)}%`, "--c": s.color } }))));
+}
+
+function hyattCount(tabs) {
+  const ranked = [...HYATTS].sort((a, b) => b.hotels - a.hotels);
+  screen(HYATT_TITLE, tabs,
+    h("div", { class: "prompt" }, "How many Hyatts?"),
+    h("div", { class: "sub" }, "Hotels in the U.S. · tap one to hear it"),
+    countBars(ranked));
+  say(`${ranked[0].name} has the most: ${ranked[0].hotels} hotels! ${ranked.at(-1).name} has just ${ranked.at(-1).hotels}.`);
+}
+
+function hyattStay(tabs, step = {}) {
+  if (step.state !== undefined) tripState = step.state;
+  if (!tripState) {
+    screen(HYATT_TITLE, tabs,
+      h("div", { class: "card compact" },
+        h("div", { class: "prompt" }, "🧳 Where are we going?"),
+        stateMap((c) => (hyattsIn(c).length ? "#8f6bff" : null), {
+          onTap: (c) => (hyattsIn(c).length ? hyattStay(tabs, { state: c }) : speak(`${STATES[c]} doesn't have a Hyatt on our list. Pick a purple state!`)),
+        })));
+    say("Let's go on a trip! Where are we going?");
+    return;
+  }
+  const here = hyattsIn(tripState);
+  if (!step.brand) {
+    screen(HYATT_TITLE, tabs,
+      h("div", { class: "card" }, h("div", { class: "prompt" }, `🧳 ${STATES[tripState]}! Which Hyatt?`)),
+      h("div", { class: "choices" }, here.map((s) =>
+        h("button", { class: "choice", style: { borderLeft: `10px solid ${s.color}` }, onclick: () => hyattStay(tabs, { brand: s }) }, `${s.emoji} ${s.name}`))),
+      h("button", { class: "next", onclick: () => hyattStay(tabs, { state: null }) }, "🗺️ Pick another state"));
+    say(`${STATES[tripState]}! Which Hyatt do you want to stay at?`);
+    return;
+  }
+  const b = step.brand;
+  const room = roomNumber();
+  screen(HYATT_TITLE, tabs,
+    h("div", { class: "keycard", style: { "--c": b.color } },
+      h("div", { class: "brand" }, `${b.emoji} ${b.name}`),
+      h("div", { class: "stripe" }),
+      h("div", {}, h("div", { class: "sub" }, `${STATES[tripState]} · Room`), h("div", { class: "room" }, String(room))),
+      h("div", { class: "key" }, "🔑")),
+    h("div", { class: "sub center" }, `Floor ${Math.floor(room / 100)}. Ride the elevator up!`),
+    h("button", { class: "next", onclick: () => hyattStay(tabs, { state: null }) }, "🧳 New trip"));
+  celebrate(`Welcome to ${b.name} in ${STATES[tripState]}! You are in room ${room}, on floor ${Math.floor(room / 100)}.`);
 }
 
 const listWords = (xs) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")}, and ${xs.at(-1)}`);

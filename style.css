@@ -499,3 +499,16 @@ html.typing .answer-form .hint { grid-column: 1 / -1; margin-top: 0; }
 .kb.tiny .kc-top { border-radius: 1.5px; box-shadow: none; }
 .kb.tiny .kc-top::after { display: none; }
 .bench, .kb-scroll, .tray { user-select: none; -webkit-user-select: none; }
+
+/* Hyatt Hotels */
+.bars { display: flex; flex-direction: column; gap: 2px; }
+.bar-row { display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; width: 100%; min-height: 48px; padding: 6px 4px; background: none; color: var(--ink); text-align: left; font-size: 1rem; }
+.bar-name { font-weight: 800; }
+.bar { grid-column: 1 / -1; height: 14px; border-radius: 7px; background: linear-gradient(var(--c), var(--c)) 0 / var(--w) 100% no-repeat, var(--line); }
+.keycard { position: relative; aspect-ratio: 1.6; border-radius: 20px; padding: 18px 20px; display: flex; flex-direction: column; justify-content: space-between; color: #fff; background: linear-gradient(135deg, var(--c), color-mix(in srgb, var(--c) 45%, black)); box-shadow: var(--shadow); animation: bump .6s; overflow: hidden; }
+.keycard .brand { font-size: 1.5rem; font-weight: 900; }
+.keycard .stripe { position: absolute; left: 0; right: 0; top: 42%; height: 20px; background: rgb(0 0 0 / .35); }
+.keycard .sub { opacity: .85; }
+.keycard .room { font-size: 3rem; font-weight: 900; line-height: 1; }
+.keycard .key { position: absolute; right: 18px; bottom: 14px; font-size: 2.4rem; }
+.sub.center { text-align: center; margin-top: 12px; }
