@@ -454,8 +454,11 @@ let explorerCat = Object.keys(CATEGORY_INFO)[0];
 let finderMode = "store";
 function storeFinder(selected) {
   const tabs = h("div", { class: "tabs" },
-    h("button", { class: finderMode === "store" ? "on" : "", onclick: () => { finderMode = "store"; storeFinder(); } }, "🛒 Pick a store"),
-    h("button", { class: finderMode === "state" ? "on" : "", onclick: () => { finderMode = "state"; storeFinder(); } }, "🗺️ Pick a state"));
+    h("button", { class: finderMode === "store" ? "on" : "", onclick: () => { finderMode = "store"; storeFinder(); } }, "🛒 Store"),
+    h("button", { class: finderMode === "state" ? "on" : "", onclick: () => { finderMode = "state"; storeFinder(); } }, "🗺️ State"),
+    h("button", { class: finderMode === "hyatt" ? "on" : "", onclick: () => { finderMode = "hyatt"; storeFinder(); } }, "🏨 Hyatt"));
+
+  if (finderMode === "hyatt") return findYourHyatt(tabs, selected);
 
   if (finderMode === "store") {
     const s = selected ?? STORES_AZ[0];
@@ -488,6 +491,37 @@ function storeFinder(selected) {
         }, `${s.emoji} ${s.name}`)))
         : h("div", { class: "sub" }, "None of our special stores are here. Walmart and Target are everywhere though!")));
   if (selected) say(here.length ? `${STATES[code]} has ${listWords(here.map((s) => s.name))}.` : `${STATES[code]} doesn't have our special stores.`);
+}
+
+const HYATTS = STORES_AZ.filter((s) => s.kind === "hotel");
+let hyattBrand = HYATTS[0];
+let hyattState = null;
+
+function findYourHyatt(tabs, picked) {
+  if (HYATTS.includes(picked)) hyattBrand = picked;
+  else if (STATES[picked]) hyattState = picked;
+  const b = hyattBrand;
+  const here = hyattState ? HYATTS.filter((s) => s.states.includes(hyattState)) : [];
+  screen("Find Your Hyatt 🏨", tabs,
+    strip(HYATTS.map((s) => h("button", {
+      class: s === b ? "chip on" : "chip",
+      style: s === b ? { background: s.color } : {},
+      onclick: () => findYourHyatt(tabs, s),
+    }, `${s.emoji} ${s.name}`))),
+    h("div", { class: "card compact" },
+      storeHeader(b, h("div", { class: "sub" }, `in ${b.states.length} state${b.states.length > 1 ? "s" : ""}`)),
+      stateMap((c) => (b.states.includes(c) ? b.color : null), { ring: hyattState, onTap: (c) => findYourHyatt(tabs, c) })),
+    h("div", { class: "card" },
+      hyattState
+        ? [h("div", { class: "prompt" }, `Hyatts in ${STATES[hyattState]}`),
+          here.length
+            ? h("div", { class: "chips small" }, here.map((s) => h("button", {
+              class: "chip on", style: { background: s.color }, onclick: () => findYourHyatt(tabs, s),
+            }, `${s.emoji} ${s.name}`)))
+            : h("div", { class: "sub" }, "No Hyatts on our list here yet.")]
+        : h("div", { class: "sub" }, "Tap a state to see its Hyatts!")));
+  if (HYATTS.includes(picked)) say(`${b.name} is in ${b.states.length} states.`);
+  else if (hyattState && STATES[picked]) say(here.length ? `${STATES[hyattState]} has ${listWords(here.map((s) => s.name))}.` : `${STATES[hyattState]} doesn't have a Hyatt on our list.`);
 }
 
 const listWords = (xs) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")}, and ${xs.at(-1)}`);
