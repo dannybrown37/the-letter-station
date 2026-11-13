@@ -1,4 +1,4 @@
-const SHELL = "shell-v3";
+const SHELL = "shell-v4";
 const IMAGES = "images-v1";
 const SHELL_FILES = [
   "./", "index.html", "style.css", "manifest.webmanifest", "icon.svg",
@@ -21,7 +21,7 @@ self.addEventListener("activate", (e) => {
 async function networkFirst(req) {
   const cache = await caches.open(SHELL);
   try {
-    const res = await fetch(req);
+    const res = await fetch(req, { cache: "no-cache" });
     if (res.ok) cache.put(req, res.clone());
     return res;
   } catch {
