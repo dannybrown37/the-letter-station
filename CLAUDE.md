@@ -35,8 +35,8 @@ Flow: `location.hash` → `route()` → `GAMES[i].run()` → `screen(title, ...n
 
 | id | What |
 |---|---|
-| storeHunt | "Which state has a X?" 4 state choices; flips to "does NOT have" for stores in >25 states; skips stores in all 50 |
-| yesNo | "Does STATE have a X?" |
+| storeHunt | Two tabs (`huntMode`; user asked to merge them to free a home slot). Which state?: "Which state has a X?" 4 state choices; flips to "does NOT have" for stores in >25 states; skips stores in all 50. Yes or No?: "Does STATE have a X?" |
+| roadTrip | Passport map: car on the current state, green = stamped, blue ring = real neighbors (`STATE_NEIGHBORS` in data.js, land borders, corners don't count). Tap a neighbor → drive, far → fly; car/plane animation, then he taps "We're here!" (no auto-advance timer). Old `#yesNo` links redirect to the Store Hunt tab. Each stop: one question (`makeTripStop`): store in this state / word with the state's letter / grammar (`makeGrammarQuestion`, rules in `GRAMMAR`: past tense, has/have, is/are, I/me, plurals, capitals, question mark, a/an). Right answer → stamp. He reads and spells well; grammar is what needs work (user said). Grammar wrong taps never read the wrong sentence aloud; grammar sentences skip hotels |
 | letterTrain | "Which {category} starts with L?" category tabs or Mix |
 | letterExplorer | 5-col letter grid → letter page: ⬅️/➡️ letter, category tabs (with word counts), word chips, tap to hear |
 | storeFinder | store chips in a sideways swipe strip → tile map (`stateMap()`, layout `STATE_TILES` in data.js, 11x8) lights up; pick state on the map → its stores (tap one → its map). Store Hunt / Yes-No answers show the same map with the answer ringed |
@@ -64,7 +64,7 @@ To add a game: write a `run` function using `screen()`, add an entry to `GAMES`.
 
 ## localStorage keys
 
-`stars` (number), `narration` (bool), `videos` ([{id,title,questions[]}]), `storeImages` ({wiki: url|""}), `keyboard` ({keyId: {c: "#hex", f: finishId, img?: "data:image/jpeg;base64,..."}}; old bare "#hex" saves migrate in `loadKeyboard`), `keyGallery` ([board], complete boards only). Snapshots are small JPEGs (~1-2KB/key); if localStorage is full, hanging fails with a "gallery is full" message.
+`stars` (number), `narration` (bool), `videos` ([{id,title,questions[]}]), `storeImages` ({wiki: url|""}), `keyboard` ({keyId: {c: "#hex", f: finishId, img?: "data:image/jpeg;base64,..."}}; old bare "#hex" saves migrate in `loadKeyboard`), `keyGallery` ([board], complete boards only), `passport` ({stamps: [code], at: code|null}, cleaned by `loadPassport`). Snapshots are small JPEGs (~1-2KB/key); if localStorage is full, hanging fails with a "gallery is full" message.
 
 ## Commands
 

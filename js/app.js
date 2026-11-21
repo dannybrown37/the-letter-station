@@ -4,6 +4,7 @@ import {
   makeStoreQuestion, makeYesNoQuestion, storesInState, parseYouTubeId,
   checkLetterAnswer, firstLetter, isDeadThumb, mergeVideos, makeCharacterQuestion, makeMixedCharacterQuestion,
   bigNumberText, makeBigNumberQuestion, makeBalloonRound, HYATTS, makeHyattQuestion, roomNumber,
+  neighbors, travelMode, makeTripStop, loadPassport,
 } from "./logic.js";
 import { keyShop } from "./keyshop.js";
 
@@ -141,7 +142,7 @@ function sayButton(text) {
 }
 
 // Wrong taps never end the round — he keeps trying until he finds it.
-function choiceButtons(choices, { label = (c) => c, isRight, onRight, rightLine, cols = 1 }) {
+function choiceButtons(choices, { label = (c) => c, isRight, onRight, rightLine, wrongLine, cols = 1 }) {
   let done = false;
   const wrap = h("div", { class: cols === 2 ? "choices two" : "choices" });
   for (const c of choices) {
@@ -159,7 +160,7 @@ function choiceButtons(choices, { label = (c) => c, isRight, onRight, rightLine,
           streak = 0;
           b.classList.add("wrong");
           boop();
-          say(`Not ${label(c)}. Try again!`);
+          say(wrongLine ? wrongLine(c) : `Not ${label(c)}. Try again!`);
         }
       },
     }, label(c));
@@ -187,8 +188,8 @@ function screen(title, ...kids) {
 
 // ---------- screens ----------
 const GAMES = [
-  { id: "storeHunt", label: "Store Hunt", emoji: "🛒", color: "#2fb36a", run: storeHunt },
-  { id: "yesNo", label: "Yes or No?", emoji: "🤔", color: "#ff8a3d", run: yesNo },
+  { id: "storeHunt", label: "Store Hunt", emoji: "🛒", color: "#2fb36a", run: storeGames },
+  { id: "roadTrip", label: "Road Trip", emoji: "🚗", color: "#ff8a3d", run: roadTrip },
   { id: "storeFinder", label: "Where Is It?", emoji: "🗺️", color: "#ff5ca8", run: storeFinder },
   { id: "letterPop", label: "Letter Pop", emoji: "🎈", color: "#e94b6a", run: letterPop },
   { id: "letterTrain", label: "Letter Train", emoji: "🚂", color: "#3fa9f5", run: letterTrain },
@@ -215,16 +216,16 @@ function home() {
 }
 
 // Tile map of the US. paint(code) returns a color to light that state, or null.
-function stateMap(paint, { onTap, ring } = {}) {
+function stateMap(paint, { onTap, ring, mark, label } = {}) {
   return h("div", { class: "us-map", role: "group", "aria-label": "Map of the states" },
     Object.entries(STATE_TILES).map(([code, [col, row]]) => {
       const color = paint(code);
       return h("button", {
-        class: `us-tile${color ? " on" : ""}${code === ring ? " ring" : ""}`,
+        class: `us-tile${color ? " on" : ""}${code === ring ? " ring" : ""}${mark?.(code) ? ` ${mark(code)}` : ""}`,
         "aria-label": STATES[code],
         style: { gridColumn: col + 1, gridRow: row + 1, background: color ?? "", transitionDelay: `${(col + row) * 30}ms` },
         onclick: () => onTap?.(code),
-      }, code);
+      }, label?.(code) ?? code);
     }));
 }
 
@@ -293,6 +294,12 @@ function showResult(result, ...kids) {
   requestAnimationFrame(() => result.scrollIntoView({ behavior: "smooth", block: "end" }));
 }
 
+let huntMode = "which";
+function storeGames() { (huntMode === "which" ? storeHunt : yesNo)(); }
+const huntTabs = () => h("div", { class: "tabs" },
+  [["which", "🛒 Which state?"], ["yesno", "🤔 Yes or No?"]].map(([k, lbl]) =>
+    h("button", { class: huntMode === k ? "on" : "", onclick: () => { huntMode = k; storeGames(); } }, lbl)));
+
 function storeHunt() {
   const q = makeStoreQuestion();
   const name = q.store.name;
@@ -300,6 +307,7 @@ function storeHunt() {
   const prompt = `Which state ${q.has ? "has" : "does not have"} ${aOrAn(name)}?`;
   const result = h("div");
   screen("Store Hunt 🛒",
+    huntTabs(),
     h("div", { class: "card", style: { borderTop: `10px solid ${q.store.color}` } },
       storeHeader(q.store),
       h("div", { class: "prompt" }, `Which state ${verb} ${article(name)} `,
@@ -322,7 +330,8 @@ function yesNo() {
   const stateName = STATES[q.state];
   const prompt = `Does ${stateName} have ${aOrAn(q.store.name)}?`;
   const result = h("div");
-  screen("Yes or No? 🤔",
+  screen("Store Hunt 🛒",
+    huntTabs(),
     h("div", { class: "card" },
       storeHeader(q.store),
       h("div", { class: "prompt" }, "Does ", h("span", { style: { color: "#3fa9f5" } }, stateName),
@@ -631,6 +640,96 @@ function hyattStay(tabs, step = {}) {
 }
 
 const listWords = (xs) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")}, and ${xs.at(-1)}`);
+
+// ---------- Road Trip ----------
+const TRIP_TITLE = "Road Trip 🚗";
+const loadTrip = () => loadPassport(store.get("passport", null));
+
+function roadTrip() {
+  const p = loadTrip();
+  const here = p.at;
+  const near = here ? neighbors(here) : [];
+  const prompt = here ? `We're in ${STATES[here]}! Where next?` : "Where should we start?";
+  screen(TRIP_TITLE,
+    h("div", { class: "card compact" },
+      h("div", { class: "trip-head" },
+        h("div", { class: "prompt" }, `🚗 ${prompt}`),
+        h("div", { class: "passport-count", "aria-label": `${p.stamps.length} of 50 stamps` }, `🛂 ${p.stamps.length}/50`)),
+      stateMap((c) => (c === here ? "var(--orange)" : p.stamps.includes(c) ? "var(--green)" : null), {
+        ring: here,
+        mark: (c) => (near.includes(c) ? "near" : ""),
+        label: (c) => (c === here ? "🚗" : c),
+        onTap: (c) => travel(p, c),
+      }),
+      h("div", { class: "trip-key" },
+        h("span", {}, h("i", { class: "swatch green" }), "stamped"),
+        near.length ? h("span", {}, h("i", { class: "swatch near" }), "drive 🚗") : null,
+        h("span", {}, "far away: fly ✈️"))));
+  say(prompt);
+}
+
+const TRAVEL_LINES = { start: "Let's start in", drive: "Let's drive to", fly: "That's far! Let's fly to" };
+
+function travel(p, to) {
+  const mode = travelMode(p.at, to);
+  if (mode === "here") { tripStop(to); return; }
+  const line = `${TRAVEL_LINES[mode]} ${STATES[to]}!`;
+  screen(TRIP_TITLE,
+    h("div", { class: `card trip-go ${mode}` },
+      h("div", { class: "trip-road" }, h("span", { class: "trip-car" }, mode === "fly" ? "✈️" : "🚗")),
+      h("div", { class: "prompt" }, line),
+      p.at ? h("div", { class: "sub" }, `${STATES[p.at]} ➡️ ${STATES[to]}`) : null),
+    h("button", { class: "next trip-here", onclick: () => tripStop(to) }, `We're here! ${mode === "fly" ? "🛬" : "🅿️"}`));
+  say(line);
+}
+
+function tripStop(code) {
+  const p = loadTrip();
+  p.at = code;
+  store.set("passport", p);
+  const name = STATES[code];
+  const q = makeTripStop(Math.random, code);
+  const result = h("div", { class: "reveal" });
+  const opts = { isRight: (c) => c === q.answer };
+  let prompt;
+  if (q.type === "store") {
+    prompt = `Which one is in ${name}?`;
+    Object.assign(opts, { label: (c) => `${c.emoji} ${c.name}`, rightLine: (c) => `${name} has ${c.name}!`, wrongLine: (c) => `Not ${c.name}. Try again!` });
+  } else if (q.type === "letter") {
+    prompt = `${name} starts with ${q.letter}. Which one starts with ${q.letter} too?`;
+    Object.assign(opts, { cols: 2, rightLine: (c) => `${c} starts with ${q.letter}, just like ${name}!` });
+  } else {
+    prompt = "Which sentence is right?";
+    // Reading a wrong sentence aloud would teach the wrong form.
+    Object.assign(opts, { rightLine: () => q.tip, wrongLine: () => "Hmm, not that one. Read it again!" });
+  }
+  // One utterance: a second say() would cut off the cheer.
+  const lastStamp = !p.stamps.includes(code) && p.stamps.length === 49;
+  const line = opts.rightLine;
+  opts.rightLine = (c) => `${line(c)}${lastStamp ? " You visited all 50 states! Amazing!" : ""}`;
+  opts.onRight = () => {
+    const fresh = !p.stamps.includes(code);
+    if (fresh) { p.stamps.push(code); store.set("passport", p); }
+    showResult(result,
+      q.type === "grammar" ? h("button", { class: "fact", onclick: () => speak(q.tip) }, `✏️ ${q.tip}`) : null,
+      h("div", { class: `stamp${fresh ? " fresh" : ""}` }, h("b", {}, code), h("span", {}, name)),
+      h("div", { class: "sub center" }, fresh ? `New stamp! ${p.stamps.length} of 50` : `${p.stamps.length} of 50 stamps`),
+      h("button", { class: "next", onclick: roadTrip }, "🗺️ Where next?"));
+    if (lastStamp) confetti(60);
+  };
+  const btns = choiceButtons(q.choices, opts);
+  if (q.type === "grammar") btns.classList.add("sentences");
+  screen(TRIP_TITLE,
+    h("div", { class: "card" },
+      h("div", { class: "trip-welcome" }, `Welcome to ${name}!`),
+      h("div", { class: "sub" }, p.stamps.includes(code) ? "🛂 You have this stamp. Visit again!" : "🛂 Get it right to earn the stamp!"),
+      h("div", { class: "prompt" }, prompt),
+      sayButton(prompt),
+      streakLine()),
+    btns,
+    result);
+  say(`Welcome to ${name}! ${prompt}`);
+}
 
 // ---------- video station ----------
 const loadVideos = () => store.get("videos", []);
@@ -953,6 +1052,8 @@ function route() {
   window.speechSynthesis?.cancel();
   streak = 0;
   trackTurn();
+  // Yes or No? used to be its own tile; old bookmarks still point at it.
+  if (location.hash === "#yesNo") { huntMode = "yesno"; location.replace("#storeHunt"); return; }
   const game = GAMES.find((g) => g.id === location.hash.slice(1));
   game ? game.run() : home();
 }

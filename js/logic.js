@@ -1,4 +1,4 @@
-import { BIG_NUMBERS, STATES, STORES, WORDS } from "./data.js";
+import { BIG_NUMBERS, STATES, STATE_NEIGHBORS, STORES, WORDS } from "./data.js";
 
 export const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
@@ -259,6 +259,113 @@ export const boardComplete = (board) => KEYBOARD.every((k) => board[k.id]);
 
 export const loadGallery = (raw) =>
   (Array.isArray(raw) ? raw : []).map(loadKeyboard).filter(boardComplete);
+
+export const neighbors = (code) => STATE_NEIGHBORS[code] ?? [];
+
+export function travelMode(from, to) {
+  if (!from) return "start";
+  if (from === to) return "here";
+  return neighbors(from).includes(to) ? "drive" : "fly";
+}
+
+export const TRIP_STOP_TYPES = ["store", "letter", "grammar"];
+const ALL_WORDS = [...new Set(Object.values(WORDS).flat())];
+
+export function makeTripStop(rng = Math.random, state, type = pick(TRIP_STOP_TYPES, rng)) {
+  if (type === "grammar") return { type, ...makeGrammarQuestion(rng, state) };
+  if (type === "store") {
+    const answer = pick(HUNTABLE_STORES.filter((s) => s.states.includes(state)), rng);
+    const others = shuffle(STORES.filter((s) => !s.states.includes(state)), rng).slice(0, 3);
+    return { type, state, answer, choices: shuffle([answer, ...others], rng) };
+  }
+  const letter = firstLetter(STATES[state]);
+  const answer = pick(ALL_WORDS.filter((w) => firstLetter(w) === letter && w !== STATES[state]), rng);
+  const others = shuffle(ALL_WORDS.filter((w) => firstLetter(w) !== letter), rng).slice(0, 3);
+  return { type, state, letter, answer, choices: shuffle([answer, ...others], rng) };
+}
+
+// "Dream Hotels is in Utah" reads wrong, so sentences only use shops and restaurants.
+const sentenceStores = (state) => STORES.filter((s) => s.kind !== "hotel" && s.states.includes(state));
+
+const PAST_VERBS = [
+  { base: "go", past: "went", oops: "goed", rest: (c) => `to ${c.store.name}` },
+  { base: "drive", past: "drove", oops: "drived", rest: (c) => `to ${c.stateName}` },
+  { base: "buy", past: "bought", oops: "buyed", rest: (c) => `snacks at ${c.store.name}` },
+  { base: "see", past: "saw", oops: "seed", rest: (c) => `a big ${c.store.name} in ${c.stateName}` },
+  { base: "eat", past: "ate", oops: "eated", rest: (c) => `lunch at ${c.restaurant.name}`, needsRestaurant: true },
+];
+
+const FOODS = ["apple", "orange", "egg", "ice cream cone", "banana", "cookie", "pretzel", "muffin"];
+const articleFor = (word) => (/^[aeiou]/i.test(word) ? "an" : "a");
+
+const GRAMMAR = {
+  past: (c, rng) => {
+    const v = pick(PAST_VERBS.filter((x) => !x.needsRestaurant || c.restaurant), rng);
+    const line = (verb) => `Yesterday we ${verb} ${v.rest(c)}.`;
+    return { right: line(v.past), wrong: [line(v.oops), line(v.base)], tip: `Yesterday already happened, so ${v.base} becomes ${v.past}!` };
+  },
+  hasHave: (c) => ({
+    right: `${c.stateName} has ${c.store.name} ${c.noun}s.`,
+    wrong: [`${c.stateName} have ${c.store.name} ${c.noun}s.`],
+    tip: "One state has. Two states have.",
+  }),
+  isAre: (c) => ({
+    right: `${c.store.name} is in ${c.stateName}.`,
+    wrong: [`${c.store.name} are in ${c.stateName}.`],
+    tip: `${c.store.name} is one ${c.noun} name, so we say is.`,
+  }),
+  iMe: (c, rng) => {
+    const who = pick(["Mom", "Dad"], rng);
+    return rng() < 0.5
+      ? { right: `${who} and I went to ${c.store.name}.`, wrong: [`${who} and me went to ${c.store.name}.`], tip: `Take away "${who} and": I went, not me went.` }
+      : { right: `${c.store.name} gave ${who} and me a sticker.`, wrong: [`${c.store.name} gave ${who} and I a sticker.`], tip: `Take away "${who} and": gave me, not gave I.` };
+  },
+  plural: (c) => ({
+    right: `We saw two ${c.store.name} ${c.noun}s in ${c.stateName}.`,
+    wrong: [`We saw two ${c.store.name} ${c.noun} in ${c.stateName}.`],
+    tip: `Two is more than one, so add an s: ${c.noun}s.`,
+  }),
+  capital: (c) => ({
+    right: `We drove to ${c.stateName}.`,
+    wrong: [`We drove to ${c.stateName.toLowerCase()}.`],
+    tip: "State names start with a capital letter.",
+  }),
+  question: (c) => ({
+    right: `Does ${c.stateName} have ${c.store.name} ${c.noun}s?`,
+    wrong: [`Does ${c.stateName} have ${c.store.name} ${c.noun}s.`],
+    tip: "Asking something? End with a question mark.",
+  }),
+  aAn: (c, rng) => {
+    const food = pick(FOODS, rng);
+    const art = articleFor(food);
+    return {
+      right: `At ${c.store.name}, we bought ${art} ${food}.`,
+      wrong: [`At ${c.store.name}, we bought ${art === "an" ? "a" : "an"} ${food}.`],
+      tip: `We say ${art} ${food}, because ${food} starts with a ${art === "an" ? "vowel" : "consonant"} sound.`,
+    };
+  },
+};
+export const GRAMMAR_RULES = Object.keys(GRAMMAR);
+
+export function makeGrammarQuestion(rng = Math.random, state, rule = pick(GRAMMAR_RULES, rng)) {
+  const stores = sentenceStores(state);
+  const restaurants = stores.filter((s) => s.kind === "restaurant");
+  const store = pick(stores, rng);
+  const ctx = {
+    stateName: STATES[state], store, noun: store.kind === "restaurant" ? "restaurant" : "store",
+    restaurant: restaurants.length ? pick(restaurants, rng) : null,
+  };
+  const { right, wrong, tip } = GRAMMAR[rule](ctx, rng);
+  return { rule, state, answer: right, choices: shuffle([right, ...wrong], rng), tip };
+}
+
+const isStateCode = (c) => typeof c === "string" && Object.hasOwn(STATES, c);
+
+export function loadPassport(raw) {
+  const p = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
+  const stamps = Array.isArray(p.stamps) ? [...new Set(p.stamps.filter(isStateCode))] : [];
+  return { stamps, at: isStateCode(p.at) ? p.at : null };
+}
 
 // 8 balloons, 2-3 carry the target letter, the rest are other letters.
 export function makeBalloonRound(rng = Math.random, target = pick(ALPHABET, rng)) {
