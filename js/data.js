@@ -401,3 +401,17 @@ export const STATE_TILES = {
   OK: [3, 6], LA: [4, 6], MS: [5, 6], AL: [6, 6], GA: [7, 6],
   HI: [0, 7], TX: [3, 7], FL: [8, 7],
 };
+
+// Real land borders (not the tile map, which bends geography). Corners don't count: AZ/CO, UT/NM.
+const BORDERS = `
+AL:FL GA MS TN|AK:|AZ:CA NV UT NM|AR:LA MS MO OK TN TX|CA:AZ NV OR|CO:KS NE NM OK UT WY|CT:MA NY RI|DE:MD NJ PA
+FL:AL GA|GA:AL FL NC SC TN|HI:|ID:MT NV OR UT WA WY|IL:IN IA KY MO WI|IN:IL KY MI OH|IA:IL MN MO NE SD WI|KS:CO MO NE OK
+KY:IL IN MO OH TN VA WV|LA:AR MS TX|ME:NH|MD:DE PA VA WV|MA:CT NH NY RI VT|MI:IN OH WI|MN:IA ND SD WI|MS:AL AR LA TN
+MO:AR IL IA KS KY NE OK TN|MT:ID ND SD WY|NE:CO IA KS MO SD WY|NV:AZ CA ID OR UT|NH:ME MA VT|NJ:DE NY PA|NM:AZ CO OK TX
+NY:CT MA NJ PA VT|NC:GA SC TN VA|ND:MN MT SD|OH:IN KY MI PA WV|OK:AR CO KS MO NM TX|OR:CA ID NV WA|PA:DE MD NJ NY OH WV
+RI:CT MA|SC:GA NC|SD:IA MN MT NE ND WY|TN:AL AR GA KY MS MO NC VA|TX:AR LA NM OK|UT:AZ CO ID NV WY|VT:MA NH NY
+VA:KY MD NC TN WV|WA:ID OR|WV:KY MD OH PA VA|WI:IL IA MI MN|WY:CO ID MT NE SD UT`;
+export const STATE_NEIGHBORS = Object.fromEntries(BORDERS.trim().split(/[|\n]/).map((e) => {
+  const [code, list] = e.split(":");
+  return [code, list ? list.split(" ") : []];
+}));

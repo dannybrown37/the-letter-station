@@ -13,8 +13,8 @@ Jump straight to a game with its `#id`, e.g. [#keyShop](https://dannybrown37.git
 
 | Tile | What it does |
 |---|---|
-| 🛒 Store Hunt | "Which state has a Publix?" — 4 state choices |
-| 🤔 Yes or No? | "Does Texas have a Wawa?" |
+| 🛒 Store Hunt | "Which state has a Publix?" — 4 state choices; Yes or No? tab: "Does Texas have a Wawa?" |
+| 🚗 Road Trip | Drive (or fly) state to state, answer a store, letter or grammar question at each stop, fill a passport with all 50 stamps |
 | 🚂 Letter Train | "Which snack starts with G?" — mix or pick a category |
 | 🔤 ABC Explorer | Pick a letter, see/hear stores, restaurants, snacks, states |
 | 🗺️ Where Is It? | Pick a store → states light up; pick a state → its stores |
