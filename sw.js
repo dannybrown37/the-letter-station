@@ -1,8 +1,8 @@
-const SHELL = "shell-v4";
+const SHELL = "shell-v5";
 const IMAGES = "images-v1";
 const SHELL_FILES = [
   "./", "index.html", "style.css", "manifest.webmanifest", "icon.svg",
-  "js/app.js", "js/data.js", "js/logic.js", "js/keyshop.js",
+  "js/app.js", "js/data.js", "js/logic.js", "js/keyshop.js", "js/usmap.js",
 ];
 
 self.addEventListener("install", (e) => {
