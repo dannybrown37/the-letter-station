@@ -268,20 +268,13 @@ export function travelMode(from, to) {
   return neighbors(from).includes(to) ? "drive" : "fly";
 }
 
-export const TRIP_STOP_TYPES = ["store", "letter", "grammar"];
-const ALL_WORDS = [...new Set(Object.values(WORDS).flat())];
+export const TRIP_STOP_TYPES = ["store", "grammar"];
 
 export function makeTripStop(rng = Math.random, state, type = pick(TRIP_STOP_TYPES, rng)) {
   if (type === "grammar") return { type, ...makeGrammarQuestion(rng, state) };
-  if (type === "store") {
-    const answer = pick(HUNTABLE_STORES.filter((s) => s.states.includes(state)), rng);
-    const others = shuffle(STORES.filter((s) => !s.states.includes(state)), rng).slice(0, 3);
-    return { type, state, answer, choices: shuffle([answer, ...others], rng) };
-  }
-  const letter = firstLetter(STATES[state]);
-  const answer = pick(ALL_WORDS.filter((w) => firstLetter(w) === letter && w !== STATES[state]), rng);
-  const others = shuffle(ALL_WORDS.filter((w) => firstLetter(w) !== letter), rng).slice(0, 3);
-  return { type, state, letter, answer, choices: shuffle([answer, ...others], rng) };
+  const answer = pick(HUNTABLE_STORES.filter((s) => s.states.includes(state)), rng);
+  const others = shuffle(STORES.filter((s) => !s.states.includes(state)), rng).slice(0, 3);
+  return { type, state, answer, choices: shuffle([answer, ...others], rng) };
 }
 
 // "Dream Hotels is in Utah" reads wrong, so sentences only use shops and restaurants.

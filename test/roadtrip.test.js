@@ -49,6 +49,13 @@ test("every state can get every kind of stop", () => {
   }
 });
 
+// User: multiple-choice "X starts with W, which word also does?" is self-evident. Typed letter answers stay.
+test("no multiple-choice letter stops", () => {
+  assert.deepEqual([...TRIP_STOP_TYPES].sort(), ["grammar", "store"]);
+  const rng = seeded(9);
+  for (let i = 0; i < 200; i++) assert.notEqual(makeTripStop(rng, "WA").type, "letter");
+});
+
 for (const seed of SEEDS) {
   test(`store stop seed ${seed}: only the answer is in the state`, () => {
     for (const state of CODES) {
@@ -57,17 +64,6 @@ for (const seed of SEEDS) {
       assert.ok(q.choices.includes(q.answer));
       assert.ok(q.answer.states.length < 50, "answer can't be in every state");
       assert.deepEqual(q.choices.filter((s) => s.states.includes(state)), [q.answer]);
-    }
-  });
-
-  test(`letter stop seed ${seed}: only the answer shares the state's first letter`, () => {
-    for (const state of CODES) {
-      const q = makeTripStop(seeded(seed), state, "letter");
-      const letter = firstLetter(STATES[state]);
-      assert.equal(q.letter, letter);
-      assert.notEqual(q.answer, STATES[state]);
-      assert.equal(new Set(q.choices).size, 4);
-      assert.deepEqual(q.choices.filter((w) => firstLetter(w) === letter), [q.answer]);
     }
   });
 
