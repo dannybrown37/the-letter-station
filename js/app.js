@@ -772,9 +772,6 @@ function tripStop(code) {
   if (q.type === "store") {
     prompt = `Which one is in ${name}?`;
     Object.assign(opts, { label: (c) => `${c.emoji} ${c.name}`, rightLine: (c) => `${name} has ${c.name}!`, wrongLine: (c) => `Not ${c.name}. Try again!` });
-  } else if (q.type === "letter") {
-    prompt = `${name} starts with ${q.letter}. Which one starts with ${q.letter} too?`;
-    Object.assign(opts, { cols: 2, rightLine: (c) => `${c} starts with ${q.letter}, just like ${name}!` });
   } else {
     prompt = "Which sentence is right?";
     // Reading a wrong sentence aloud would teach the wrong form.
