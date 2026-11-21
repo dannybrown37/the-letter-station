@@ -1,4 +1,5 @@
-import { BIG_NUMBERS, STATE_TILES, STATES, STORES, KINDS, CATEGORY_INFO, VIDEO_QUESTIONS, VIDEO_CHANNELS, SING_VIDEOS, LBB_CHARACTERS, SING_CHARACTERS, LEARNING_STATION_CHARACTERS } from "./data.js";
+import { US_VIEWBOX, US_PATHS, US_LABELS } from "./usmap.js";
+import { BIG_NUMBERS, STATES, STORES, KINDS, CATEGORY_INFO, VIDEO_QUESTIONS, VIDEO_CHANNELS, SING_VIDEOS, LBB_CHARACTERS, SING_CHARACTERS, LEARNING_STATION_CHARACTERS } from "./data.js";
 import {
   ALPHABET, pick, shuffle, wordsForLetter, makeLetterQuestion,
   makeStoreQuestion, makeYesNoQuestion, storesInState, parseYouTubeId,
@@ -215,18 +216,50 @@ function home() {
       }, h("span", { class: "big" }, g.emoji), h("span", {}, g.label)))));
 }
 
-// Tile map of the US. paint(code) returns a color to light that state, or null.
+function svg(tag, attrs = {}, ...kids) {
+  const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
+    else if (v != null && v !== false) el.setAttribute(k, v);
+  }
+  for (const kid of kids.flat()) if (kid != null) el.append(kid);
+  return el;
+}
+
+// Too small to tap on a phone map, so they also get chips under it.
+const SMALL_STATES = ["VT", "NH", "MA", "RI", "CT", "NJ", "DE", "MD"];
+
+// Map of the US. paint(code) returns a color to light that state, or null.
 function stateMap(paint, { onTap, ring, mark, label } = {}) {
-  return h("div", { class: "us-map", role: "group", "aria-label": "Map of the states" },
-    Object.entries(STATE_TILES).map(([code, [col, row]]) => {
-      const color = paint(code);
-      return h("button", {
-        class: `us-tile${color ? " on" : ""}${code === ring ? " ring" : ""}${mark?.(code) ? ` ${mark(code)}` : ""}`,
-        "aria-label": STATES[code],
-        style: { gridColumn: col + 1, gridRow: row + 1, background: color ?? "", transitionDelay: `${(col + row) * 30}ms` },
-        onclick: () => onTap?.(code),
-      }, label?.(code) ?? code);
-    }));
+  const cls = (code, base) => [base, paint(code) ? "on" : "", code === ring ? "ring" : "", mark?.(code) ?? ""].filter(Boolean).join(" ");
+  const onKey = (code) => (e) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    e.preventDefault();
+    onTap?.(code);
+  };
+  // Later shapes paint over earlier ones, so outlined states go last or their outline hides under a neighbor.
+  const rank = (code) => (code === ring ? 2 : mark?.(code) ? 1 : 0);
+  const codes = Object.keys(US_PATHS).sort((a, b) => rank(a) - rank(b));
+  const shapes = codes.map((code) => svg("path", {
+    d: US_PATHS[code],
+    class: cls(code, "us-state"),
+    style: `fill: ${paint(code) ?? "var(--panel)"}`,
+    role: "button",
+    tabindex: "0",
+    "aria-label": STATES[code],
+    onclick: () => onTap?.(code),
+    onkeydown: onKey(code),
+  }, svg("title", {}, STATES[code])));
+  const labels = codes.filter((code) => label && label(code) !== code).map((code) =>
+    svg("text", { x: US_LABELS[code][0], y: US_LABELS[code][1], class: "us-label", "text-anchor": "middle", "dominant-baseline": "central" }, label(code)));
+  return h("div", { class: "us-map" },
+    svg("svg", { viewBox: US_VIEWBOX, class: "us-map-svg", role: "group", "aria-label": "Map of the states" }, shapes, labels),
+    h("div", { class: "small-states" }, SMALL_STATES.map((code) => h("button", {
+      class: cls(code, "us-chip"),
+      style: { background: paint(code) ?? "" },
+      "aria-label": STATES[code],
+      onclick: () => onTap?.(code),
+    }, label?.(code) ?? code))));
 }
 
 const strip = (kids, cls = "") => {
