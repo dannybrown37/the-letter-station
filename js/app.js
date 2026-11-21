@@ -4,7 +4,7 @@ import {
   makeStoreQuestion, makeYesNoQuestion, storesInState, parseYouTubeId,
   checkLetterAnswer, firstLetter, isDeadThumb, mergeVideos, makeCharacterQuestion, makeMixedCharacterQuestion,
   bigNumberText, makeBigNumberQuestion, makeBalloonRound, HYATTS, makeHyattQuestion, roomNumber,
-  neighbors, travelMode, makeTripStop, loadPassport,
+  neighbors, travelMode, makeTripStop, loadPassport, PASSPORT_ORDER, neighborLine, finishTrip,
 } from "./logic.js";
 import { keyShop } from "./keyshop.js";
 
@@ -182,7 +182,7 @@ window.visualViewport?.addEventListener("scroll", () => { if (isTyping() && wind
 
 function screen(title, ...kids) {
   titleEl.textContent = title;
-  app.replaceChildren(...kids.flat());
+  app.replaceChildren(...kids.flat().filter((k) => k != null));
   window.scrollTo(0, 0);
 }
 
@@ -645,12 +645,20 @@ const listWords = (xs) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join
 const TRIP_TITLE = "Road Trip 🚗";
 const loadTrip = () => loadPassport(store.get("passport", null));
 
+let tripMode = "map";
+const tripTabs = () => h("div", { class: "tabs" },
+  [["map", "🗺️ Map"], ["book", "🛂 Passport"]].map(([k, lbl]) =>
+    h("button", { class: tripMode === k ? "on" : "", onclick: () => { tripMode = k; roadTrip(); } }, lbl)));
+const showTripMap = () => { tripMode = "map"; roadTrip(); };
+
 function roadTrip() {
+  if (tripMode === "book") { passportBook(); return; }
   const p = loadTrip();
   const here = p.at;
   const near = here ? neighbors(here) : [];
   const prompt = here ? `We're in ${STATES[here]}! Where next?` : "Where should we start?";
   screen(TRIP_TITLE,
+    tripTabs(),
     h("div", { class: "card compact" },
       h("div", { class: "trip-head" },
         h("div", { class: "prompt" }, `🚗 ${prompt}`),
@@ -666,6 +674,42 @@ function roadTrip() {
         near.length ? h("span", {}, h("i", { class: "swatch near" }), "drive 🚗") : null,
         h("span", {}, "far away: fly ✈️"))));
   say(prompt);
+}
+
+function passportBook() {
+  const p = loadTrip();
+  const have = new Set(p.stamps);
+  const done = have.size === PASSPORT_ORDER.length;
+  let armed = false;
+  const newTrip = h("button", {
+    class: "next",
+    onclick: () => {
+      if (!armed) { armed = true; newTrip.textContent = "Tap again to clear your stamps"; return; }
+      store.set("passport", finishTrip(p));
+      showTripMap();
+      say("New trip! Where should we start?");
+    },
+  }, "🧳 Start a new trip");
+  screen(TRIP_TITLE,
+    tripTabs(),
+    done ? h("div", { class: "card pp-done" }, h("div", { class: "giant" }, "🏆"), h("div", { class: "prompt" }, "You visited all 50 states!")) : null,
+    h("div", { class: "card compact" },
+      h("div", { class: "prompt" }, `🛂 ${have.size} / 50 stamps`),
+      h("div", { class: "pp-bar", style: { "--w": `${(have.size / 50) * 100}%` } }),
+      p.trips ? h("div", { class: "sub" }, `🏆 Trips finished: ${p.trips}`) : null,
+      h("div", { class: "pp-grid" }, PASSPORT_ORDER.map((code, i) => {
+        const name = STATES[code];
+        const got = have.has(code);
+        return h("button", {
+          class: got ? "pp-slot got" : "pp-slot",
+          style: { "--tilt": `${((i * 37) % 15) - 7}deg` },
+          "aria-label": got ? `${name}, stamped` : `${name}, not yet`,
+          onclick: () => speak(got ? `${name}! You got this stamp. ${neighborLine(code)}` : `${name}. Not yet! ${neighborLine(code)}`),
+        }, h("b", {}, code), got ? h("span", { class: name.length > 12 ? "long" : "" }, name) : null);
+      }))),
+    done ? newTrip : null);
+  if (done) { confetti(40); say("You visited all 50 states! Tap a stamp to hear about it."); }
+  else say(`You have ${have.size} stamps. Tap a stamp to hear about it.`);
 }
 
 const TRAVEL_LINES = { start: "Let's start in", drive: "Let's drive to", fly: "That's far! Let's fly to" };
@@ -714,7 +758,8 @@ function tripStop(code) {
       q.type === "grammar" ? h("button", { class: "fact", onclick: () => speak(q.tip) }, `✏️ ${q.tip}`) : null,
       h("div", { class: `stamp${fresh ? " fresh" : ""}` }, h("b", {}, code), h("span", {}, name)),
       h("div", { class: "sub center" }, fresh ? `New stamp! ${p.stamps.length} of 50` : `${p.stamps.length} of 50 stamps`),
-      h("button", { class: "next", onclick: roadTrip }, "🗺️ Where next?"));
+      lastStamp ? h("button", { class: "next trophy", onclick: () => { tripMode = "book"; roadTrip(); } }, "🏆 See your passport!") : null,
+      h("button", { class: "next", onclick: showTripMap }, "🗺️ Where next?"));
     if (lastStamp) confetti(60);
   };
   const btns = choiceButtons(q.choices, opts);

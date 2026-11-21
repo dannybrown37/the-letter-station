@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   neighbors, travelMode, makeTripStop, TRIP_STOP_TYPES, GRAMMAR_RULES, makeGrammarQuestion, loadPassport, firstLetter,
+  PASSPORT_ORDER, neighborLine, finishTrip,
 } from "../js/logic.js";
 import { STATES, STATE_NEIGHBORS, STORES } from "../js/data.js";
 
@@ -156,14 +157,46 @@ test("all grammar rules show up over many rounds", () => {
 });
 
 for (const [raw, expected] of [
-  [null, { stamps: [], at: null }],
-  ["junk", { stamps: [], at: null }],
-  [[], { stamps: [], at: null }],
-  [{ stamps: ["FL", "GA", "FL", "ZZ", 4], at: "GA" }, { stamps: ["FL", "GA"], at: "GA" }],
-  [{ stamps: ["FL"], at: "ZZ" }, { stamps: ["FL"], at: null }],
-  [{ stamps: "FL", at: "FL" }, { stamps: [], at: "FL" }],
+  [null, { stamps: [], at: null, trips: 0 }],
+  ["junk", { stamps: [], at: null, trips: 0 }],
+  [[], { stamps: [], at: null, trips: 0 }],
+  [{ stamps: ["FL", "GA", "FL", "ZZ", 4], at: "GA" }, { stamps: ["FL", "GA"], at: "GA", trips: 0 }],
+  [{ stamps: ["FL"], at: "ZZ" }, { stamps: ["FL"], at: null, trips: 0 }],
+  [{ stamps: "FL", at: "FL" }, { stamps: [], at: "FL", trips: 0 }],
+  [{ stamps: [], at: null, trips: 2 }, { stamps: [], at: null, trips: 2 }],
+  [{ trips: -1 }, { stamps: [], at: null, trips: 0 }],
+  [{ trips: 1.5 }, { stamps: [], at: null, trips: 0 }],
+  [{ trips: "3" }, { stamps: [], at: null, trips: 0 }],
 ]) {
   test(`loadPassport(${JSON.stringify(raw)})`, () => {
     assert.deepEqual(loadPassport(raw), expected);
   });
 }
+
+test("PASSPORT_ORDER lists every state once, A to Z by name", () => {
+  assert.equal(PASSPORT_ORDER.length, 50);
+  assert.equal(new Set(PASSPORT_ORDER).size, 50);
+  assert.deepEqual(PASSPORT_ORDER.slice(0, 4), ["AL", "AK", "AZ", "AR"]);
+  assert.equal(PASSPORT_ORDER.at(-1), "WY");
+});
+
+for (const [code, line] of [
+  ["FL", "Florida touches Alabama and Georgia."],
+  ["ME", "Maine touches New Hampshire."],
+  ["AR", "Arkansas touches Louisiana, Mississippi, Missouri, Oklahoma, Tennessee, and Texas."],
+  ["HI", "Hawaii doesn't touch any other state. You have to fly!"],
+]) {
+  test(`neighborLine ${code}`, () => {
+    assert.equal(neighborLine(code), line);
+  });
+}
+
+test("finishTrip clears stamps, keeps the car, counts the trip", () => {
+  const full = { stamps: Object.keys(STATES), at: "UT", trips: 1 };
+  assert.deepEqual(finishTrip(full), { stamps: [], at: "UT", trips: 2 });
+});
+
+test("finishTrip does nothing before all 50", () => {
+  const p = { stamps: ["FL"], at: "FL", trips: 0 };
+  assert.equal(finishTrip(p), p);
+});

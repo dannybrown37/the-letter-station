@@ -364,8 +364,22 @@ const isStateCode = (c) => typeof c === "string" && Object.hasOwn(STATES, c);
 export function loadPassport(raw) {
   const p = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
   const stamps = Array.isArray(p.stamps) ? [...new Set(p.stamps.filter(isStateCode))] : [];
-  return { stamps, at: isStateCode(p.at) ? p.at : null };
+  const trips = Number.isInteger(p.trips) && p.trips > 0 ? p.trips : 0;
+  return { stamps, at: isStateCode(p.at) ? p.at : null, trips };
 }
+
+const byStateName = (a, b) => STATES[a].localeCompare(STATES[b]);
+export const PASSPORT_ORDER = Object.keys(STATES).sort(byStateName);
+
+const andList = (xs) => (xs.length <= 2 ? xs.join(" and ") : `${xs.slice(0, -1).join(", ")}, and ${xs.at(-1)}`);
+
+export function neighborLine(code) {
+  const ns = [...neighbors(code)].sort(byStateName).map((c) => STATES[c]);
+  return ns.length ? `${STATES[code]} touches ${andList(ns)}.` : `${STATES[code]} doesn't touch any other state. You have to fly!`;
+}
+
+export const finishTrip = (p) =>
+  (p.stamps.length === PASSPORT_ORDER.length ? { stamps: [], at: p.at, trips: p.trips + 1 } : p);
 
 // 8 balloons, 2-3 carry the target letter, the rest are other letters.
 export function makeBalloonRound(rng = Math.random, target = pick(ALPHABET, rng)) {
