@@ -23,6 +23,8 @@ html, body {
   color: var(--ink);
   font-family: "Nunito", "Arial Rounded MT Bold", ui-rounded, system-ui, sans-serif;
   overscroll-behavior: none;
+  /* clip, not hidden: a bumping answer can poke past the edge without making the page scroll sideways, and sticky still works. */
+  overflow-x: clip;
 }
 
 body { min-height: 100dvh; }
@@ -52,8 +54,8 @@ button:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0, 0, 0, .4
 .topbar {
   position: sticky; top: 0; z-index: 5;
   display: flex; align-items: center; gap: 10px;
-  padding: calc(env(safe-area-inset-top) + 8px) 12px 8px;
-  background: var(--pink);
+  padding: calc(env(safe-area-inset-top) + 8px) max(12px, env(safe-area-inset-right)) 8px max(12px, env(safe-area-inset-left));
+  background: var(--topbar, var(--pink)); transition: background .3s;
   color: #fff;
 }
 .topbar h1 { flex: 1; min-width: 0; margin: 0; font-size: clamp(1rem, 4.6vw, 1.25rem); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 900; text-align: center; }
@@ -70,7 +72,7 @@ button:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0, 0, 0, .4
 
 main {
   max-width: 520px; margin: 0 auto;
-  padding: 12px 12px calc(env(safe-area-inset-bottom) + 20px);
+  padding: 12px max(12px, env(safe-area-inset-right)) calc(env(safe-area-inset-bottom) + 20px) max(12px, env(safe-area-inset-left));
 }
 
 .hello { display: flex; align-items: center; gap: 12px; padding: 4px 6px 12px; }
@@ -222,7 +224,7 @@ main {
   display: inline-block; margin: 4px 0 2px; padding: 4px 12px; border-radius: 999px;
   background: #0e0a14; color: var(--ink); font-weight: 800; font-size: 1rem;
 }
-.say { background: var(--yellow); color: #2b2140; border-radius: 999px; padding: 6px 16px; font-size: 1.1rem; font-weight: 800; margin-top: 6px; box-shadow: var(--shadow); }
+.say { min-height: 48px; background: var(--yellow); color: #2b2140; border-radius: 999px; padding: 8px 20px; font-size: 1.1rem; font-weight: 800; margin-top: 6px; box-shadow: var(--shadow); }
 
 .choices { display: grid; gap: 10px; }
 .choices.two .choice { font-size: 1.15rem; padding: 8px 6px; }
@@ -234,7 +236,6 @@ main {
   border: 4px solid transparent;
 }
 .choice.right { background: var(--green); color: #fff; animation: bump .5s; }
-.choice.wrong { background: #5a2a38; animation: shake .4s; opacity: .6; }
 .choice.guess { display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .choice.guess .friend-pic.big { width: 72px; height: 72px; }
 .choice.yes { background: var(--green); color: #fff; font-size: 2rem; min-height: 110px; }
@@ -246,7 +247,7 @@ main {
 .answer.right { background: var(--green); border-color: var(--green); color: #fff; }
 .hint { text-align: center; min-height: 1.4em; margin-top: 8px; }
 
-html.typing .tabs, html.typing .streak { display: none; }
+html.typing .tabs, html.typing .streak, html.typing .trail-line { display: none; }
 html.typing .giant { font-size: 3rem; }
 html.typing .card { padding: 8px 12px; }
 html.typing .card .prompt { font-size: 1.2rem; }
@@ -305,9 +306,9 @@ html.typing .answer-form .hint { grid-column: 1 / -1; margin-top: 0; }
 .streak { font-size: 1.1rem; font-weight: 900; color: var(--orange); min-height: 1.4em; }
 
 #confetti { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 20; }
-#confetti span { position: absolute; top: -40px; font-size: 2rem; animation: fall 1.6s ease-in forwards; }
+#confetti span { position: absolute; top: -40px; font-size: 2rem; animation: fall 2.4s cubic-bezier(.3, .1, .6, 1) forwards; }
 
-@keyframes fall { to { transform: translateY(110dvh) rotate(540deg); } }
+@keyframes fall { to { transform: translateY(110dvh) rotate(200deg); } }
 @keyframes bump { 50% { transform: scale(1.12); } }
 @keyframes shake { 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
 
@@ -568,3 +569,40 @@ html.typing .answer-form .hint { grid-column: 1 / -1; margin-top: 0; }
 .pp-slot span.long { font-size: .38rem; }
 .pp-done { text-align: center; border: 3px solid var(--yellow); }
 .pp-done .prompt { color: var(--yellow); }
+
+/* ---------- polish pass ---------- */
+button.kind { position: relative; }
+button.kind::after { content: ""; position: absolute; inset: -12px -6px; }
+.map-line { min-height: 48px; }
+.chip { min-height: 48px; }
+a.chip { display: inline-flex; align-items: center; }
+.fact-chip { min-height: 48px; }
+.parent button, .parent input { min-height: 48px; }
+
+.tabs button { min-width: 0; padding: 0 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tabs:has(> :nth-child(4)) { gap: 6px; }
+.tabs:has(> :nth-child(4)) button { padding: 0 2px; font-size: clamp(.74rem, 3.6vw, 1.05rem); }
+
+.choices .choice.right { position: relative; box-shadow: 0 0 0 4px color-mix(in srgb, var(--green) 45%, white), var(--shadow); }
+.choices .choice.right::after {
+  content: "✓"; position: absolute; top: -10px; right: -8px; width: 30px; height: 30px; border-radius: 50%;
+  background: var(--ink); color: var(--green); font-size: 1.1rem; font-weight: 900; line-height: 30px; text-align: center;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, .35); animation: pop-in .35s cubic-bezier(.3, 1.6, .5, 1);
+}
+.choices .choice.wrong { background: var(--panel); color: var(--muted); border: 4px dashed var(--line); box-shadow: none; opacity: .7; animation: wiggle .4s; }
+@keyframes wiggle { 25% { transform: rotate(-2deg); } 75% { transform: rotate(2deg); } }
+
+.trail-line { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 1.6em; margin-top: 8px; }
+.trail { display: flex; gap: 3px; padding: 3px 8px; border-radius: 999px; background: var(--panel); font-size: 1.15rem; line-height: 1.3; }
+.trail span { filter: grayscale(1); opacity: .3; transition: opacity .3s, filter .3s; }
+.trail span.on { filter: none; opacity: 1; }
+.trail span.new { animation: bump .5s .7s; }
+.trail.full { box-shadow: 0 0 0 3px var(--yellow), 0 0 18px color-mix(in srgb, var(--yellow) 50%, transparent); }
+.trail-line .streak { min-height: 0; }
+
+.fly-star { position: fixed; z-index: 30; pointer-events: none; font-size: 2rem; filter: drop-shadow(0 3px 3px rgba(0, 0, 0, .5)); }
+
+.empty-tv { padding: 18px 16px; }
+.empty-tv .tv { font-size: 4.5rem; line-height: 1; animation: bob 2.4s ease-in-out infinite alternate; }
+.empty-tv .sub { margin-top: 8px; }
+.ladder-step { margin: -6px 0 10px; text-align: center; color: var(--muted); font-weight: 800; }

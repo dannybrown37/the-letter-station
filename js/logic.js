@@ -381,6 +381,27 @@ export function neighborLine(code) {
 export const finishTrip = (p) =>
   (p.stamps.length === PASSPORT_ORDER.length ? { stamps: [], at: p.at, trips: p.trips + 1 } : p);
 
+// Fed by a count that never goes down, so a wrong tap can't take a star back.
+export const TRAIL_SIZE = 5;
+export function starTrail(count) {
+  const party = count > 0 && count % TRAIL_SIZE === 0;
+  return { filled: party ? TRAIL_SIZE : count % TRAIL_SIZE, party };
+}
+
+export const starMilestone = (stars) => stars > 0 && stars % 10 === 0;
+
+// One utterance: a second speak() would cancel the first.
+export const rewardLine = ({ cheer, extra = "", stars, party = false }) =>
+  [cheer, extra.trim(), party ? "Your star trail is full!" : "", starMilestone(stars) ? `Wow! ${stars} stars!` : ""]
+    .filter(Boolean).join(" ");
+
+const HEX6 = /^#[0-9a-f]{6}$/i;
+export function shade(hex, t) {
+  if (!HEX6.test(hex ?? "")) return null;
+  const channel = (i) => Math.round(parseInt(hex.slice(i, i + 2), 16) * t).toString(16).padStart(2, "0");
+  return `#${channel(1)}${channel(3)}${channel(5)}`;
+}
+
 // 8 balloons, 2-3 carry the target letter, the rest are other letters.
 export function makeBalloonRound(rng = Math.random, target = pick(ALPHABET, rng)) {
   const hits = 2 + Math.floor(rng() * 2);
