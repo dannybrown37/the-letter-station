@@ -8,6 +8,7 @@ import {
   neighbors, travelMode, makeTripStop, loadPassport, PASSPORT_ORDER, neighborLine, finishTrip,
 } from "./logic.js";
 import { keyShop } from "./keyshop.js";
+import { spotter } from "./spotter.js";
 
 const byName = (a, b) => a.name.localeCompare(b.name);
 const STORES_AZ = [...STORES].sort(byName);
@@ -201,7 +202,13 @@ const GAMES = [
   { id: "keyShop", label: "Key Shop", emoji: "⌨️", color: "#d6408f", run: () => keyShop({ h, screen, say, speak, celebrate, store, audio: () => (audio ??= new AudioContext()) }) },
   { id: "videoStation", label: "Videos", emoji: "📺", color: "#e8a200", run: videoStation },
   { id: "hyatt", label: "Hyatt Hotels", emoji: "🏨", color: "#1e88c8", run: hyattGame },
+  { id: "spotter", label: "State Spotter", emoji: "📍", color: "#2b9bb8", run: () => spotter(kit()) },
 ];
+
+// Shared helpers for the games that live in their own modules.
+function kit() {
+  return { h, svg, screen, say, speak, celebrate, boop, tone, confetti, stateMap, strip, sayButton, brandText, COLORS, store };
+}
 
 function home() {
   screen("The Letter Station",

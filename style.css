@@ -83,7 +83,7 @@ main {
   --c: var(--purple);
   position: relative; overflow: hidden;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
-  aspect-ratio: 5 / 6; padding: 8px 4px;
+  aspect-ratio: 1; padding: 8px 4px;
   border-radius: var(--radius);
   background: linear-gradient(165deg, color-mix(in srgb, var(--c) 75%, white) 0%, var(--c) 45%, color-mix(in srgb, var(--c) 65%, black) 100%);
   box-shadow: 0 6px 0 color-mix(in srgb, var(--c) 45%, black), 0 10px 18px rgba(0, 0, 0, .35);
