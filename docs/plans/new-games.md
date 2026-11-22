@@ -1,4 +1,4 @@
-# New games: State Spotter, ABC Line-Up, Shopping Trip
+# New games: State Spotter, ABC Line Up, Shopping Trip
 
 Three games that reuse data already in the app (`STATES`, `STORES`, `WORDS`, the real map).
 No new facts to research, so nothing can be guessed wrong.
@@ -49,7 +49,7 @@ Tap the real US map. Three tabs:
 
 Kind: no limit on taps, the miss line names the state he tapped (so a miss still teaches).
 
-## 2. ABC Line-Up 🔠 (`#lineUp`)
+## 2. ABC Line Up 🔠 (`#lineUp`)
 
 Four words from one category (stores / restaurants / snacks / states). Tap them in A→Z
 order; each one rides into the next train car.

@@ -10,6 +10,7 @@ import {
 import { keyShop } from "./keyshop.js";
 import { spotter } from "./spotter.js";
 import { lineUp } from "./lineup.js";
+import { shopping } from "./shopping.js";
 
 const byName = (a, b) => a.name.localeCompare(b.name);
 const STORES_AZ = [...STORES].sort(byName);
@@ -204,7 +205,8 @@ const GAMES = [
   { id: "videoStation", label: "Videos", emoji: "📺", color: "#e8a200", run: videoStation },
   { id: "hyatt", label: "Hyatt Hotels", emoji: "🏨", color: "#1e88c8", run: hyattGame },
   { id: "spotter", label: "State Spotter", emoji: "📍", color: "#2b9bb8", run: () => spotter(kit()) },
-  { id: "lineUp", label: "ABC Line-Up", emoji: "🔠", color: "#c75b2a", run: () => lineUp(kit()) },
+  { id: "lineUp", label: "ABC Line Up", emoji: "🔠", color: "#c75b2a", run: () => lineUp(kit()) },
+  { id: "shopping", label: "Shopping Trip", emoji: "🧺", color: "#4c9a2a", run: () => shopping(kit()) },
 ];
 
 // Shared helpers for the games that live in their own modules.

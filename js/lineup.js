@@ -26,7 +26,7 @@ const CSS = `
 `;
 
 const TABS = [[false, "🔤 ABC"], [true, "🧐 Tricky"]];
-const TITLE = "ABC Line-Up 🔠";
+const TITLE = "ABC Line Up 🔠";
 const COLORS = ["#ff5ca8", "#3fa9f5", "#36c275", "#ff8a3d"];
 let tricky = false;
 let ui;
