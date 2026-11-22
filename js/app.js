@@ -6,6 +6,7 @@ import {
   checkLetterAnswer, firstLetter, isDeadThumb, mergeVideos, makeCharacterQuestion, makeMixedCharacterQuestion,
   bigNumberText, makeBigNumberQuestion, makeBalloonRound, HYATTS, makeHyattQuestion, roomNumber,
   neighbors, travelMode, makeTripStop, loadPassport, PASSPORT_ORDER, neighborLine, finishTrip,
+  starTrail, rewardLine, TRAIL_SIZE, shade,
 } from "./logic.js";
 import { keyShop } from "./keyshop.js";
 
@@ -55,14 +56,35 @@ const store = {
 let stars = store.get("stars", 0);
 const starEl = document.getElementById("star-count");
 starEl.textContent = stars;
-function addStar() {
-  stars += 1;
-  store.set("stars", stars);
-  starEl.textContent = stars;
+const reducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function bumpStars() {
   starEl.parentElement.classList.remove("bump");
   void starEl.offsetWidth;
   starEl.parentElement.classList.add("bump");
-  if (stars % 10 === 0) { confetti(40); say(`Wow! ${stars} stars!`); }
+}
+
+function addStar(from) {
+  stars += 1;
+  store.set("stars", stars);
+  starEl.textContent = stars;
+  flyStar(from, bumpStars);
+}
+
+// A star lifts off the answer he tapped and lands on the counter, so he sees where it went.
+function flyStar(from, land) {
+  if (reducedMotion()) { land(); return; }
+  const r = from?.isConnected ? from.getBoundingClientRect() : { left: innerWidth / 2, top: innerHeight / 2, width: 0, height: 0 };
+  const t = starEl.parentElement.getBoundingClientRect();
+  const x = r.left + r.width / 2;
+  const y = r.top + r.height / 2;
+  const s = h("span", { class: "fly-star", style: { left: `${x}px`, top: `${y}px` } }, "⭐");
+  document.body.append(s);
+  s.animate([
+    { transform: "translate(-50%, -50%) scale(.4)", opacity: 0 },
+    { transform: "translate(-50%, -50%) scale(1.5)", opacity: 1, offset: 0.3 },
+    { transform: `translate(calc(-50% + ${t.left + t.width / 2 - x}px), calc(-50% + ${t.top + t.height / 2 - y}px)) scale(.7)`, opacity: 1 },
+  ], { duration: 900, easing: "cubic-bezier(.5, 0, .3, 1)" }).onfinish = () => { s.remove(); land(); };
 }
 
 // ---------- speech + sounds ----------
@@ -116,6 +138,7 @@ function tone(freqs, type = "sine", step = 0.11) {
 }
 const ding = () => tone([523, 659, 784, 1047]);
 const boop = () => tone([300, 220], "triangle", 0.15);
+const buzz = () => { try { navigator.vibrate?.(20); } catch { /* haptics are a bonus */ } };
 
 function confetti(n = 18) {
   const box = document.getElementById("confetti");
@@ -123,20 +146,39 @@ function confetti(n = 18) {
   for (let i = 0; i < n; i++) {
     const s = h("span", { style: { left: `${Math.random() * 100}%`, animationDelay: `${Math.random() * 0.4}s` } }, pick(bits));
     box.append(s);
-    setTimeout(() => s.remove(), 2200);
+    setTimeout(() => s.remove(), 3000);
   }
 }
 
-function celebrate(extra = "") {
+function celebrate(extra = "", from = null, party = false) {
   ding();
-  confetti();
-  addStar();
-  say(`${pick(CHEERS)} ${extra}`);
+  buzz();
+  addStar(from);
+  confetti(party || stars % 10 === 0 ? 40 : 18);
+  say(rewardLine({ cheer: pick(CHEERS), extra, stars, party }));
 }
 
 // ---------- shared quiz pieces ----------
 let streak = 0;
-const streakLine = () => h("div", { class: "streak" }, streak >= 2 ? `🔥 ${streak} in a row!` : "");
+// Counts right answers this session. Unlike the streak it never drops, so a wrong tap costs nothing.
+let trail = 0;
+
+function scored() {
+  streak += 1;
+  trail += 1;
+  const { filled, party } = starTrail(trail);
+  document.querySelectorAll(".trail").forEach((el) => {
+    el.classList.toggle("full", party);
+    el.setAttribute("aria-label", `${filled} of ${TRAIL_SIZE} stars`);
+    [...el.children].forEach((s, i) => { s.classList.toggle("on", i < filled); s.classList.toggle("new", i === filled - 1); });
+  });
+  return party;
+}
+
+const streakLine = () => h("div", { class: "trail-line" },
+  h("div", { class: "trail", role: "img", "aria-label": `${trail % TRAIL_SIZE} of ${TRAIL_SIZE} stars` },
+    Array.from({ length: TRAIL_SIZE }, (_, i) => h("span", { class: i < trail % TRAIL_SIZE ? "on" : "" }, "⭐"))),
+  h("span", { class: "streak" }, streak >= 2 ? `🔥 ${streak} in a row!` : ""));
 
 function sayButton(text) {
   return h("button", { class: "say", onclick: () => speak(text) }, "🔊 Hear it");
@@ -154,8 +196,7 @@ function choiceButtons(choices, { label = (c) => c, isRight, onRight, rightLine,
         if (isRight(c)) {
           done = true;
           b.classList.add("right");
-          streak += 1;
-          celebrate(rightLine(c));
+          celebrate(rightLine(c), b, scored());
           onRight();
         } else {
           streak = 0;
@@ -438,8 +479,7 @@ function typedAnswerForm(q, kind) {
         input.classList.add("right");
         submit.textContent = "Next ➡️";
         hint.textContent = "";
-        streak += 1;
-        celebrate(`${word} starts with ${q.letter}!`);
+        celebrate(`${word} starts with ${q.letter}!`, input, scored());
         return;
       }
       streak = 0;
@@ -858,7 +898,11 @@ function videoStation() {
             onload: (e) => { if (isDeadThumb(e.target.naturalWidth, e.target.naturalHeight)) e.target.closest(".row").hidden = true; },
           }),
           h("span", {}, v.title))))
-      : h("div", { class: "card sub" }, "No videos yet — ask a grown-up to add some below!"),
+      : h("div", { class: "card empty-tv" },
+        h("div", { class: "tv" }, "📺"),
+        h("div", { class: "prompt" }, "No videos yet!"),
+        h("button", { class: "next", onclick: () => { saveVideos(mergeVideos(videos, SING_VIDEOS)); videoStation(); } }, "🎤 Add the Sing songs"),
+        h("div", { class: "sub" }, "Or ask a grown-up to add some below.")),
     h("div", { class: "card" },
       h("div", { class: "sub" }, "Find more on YouTube:"),
       h("div", { class: "chips" }, VIDEO_CHANNELS.map((c) =>
@@ -884,7 +928,7 @@ function playVideo(v) {
       qText,
       h("div", { class: "choices two", style: { marginTop: "14px" } },
         h("button", { class: "choice", onclick: () => speak(qText.textContent) }, "🔊 Again"),
-        h("button", { class: "choice yes", style: { fontSize: "1.3rem", minHeight: "72px" }, onclick: () => { celebrate("Great thinking!"); i += 1; show(); } }, "I answered! ⭐"))),
+        h("button", { class: "choice yes", style: { fontSize: "1.3rem", minHeight: "72px" }, onclick: (e) => { celebrate("Great thinking!", e.currentTarget); i += 1; show(); } }, "I answered! ⭐"))),
     h("button", { class: "next", onclick: () => { location.hash = "videoStation"; } }, "📺 More videos"));
   qText.textContent = bank[0];
 }
@@ -978,7 +1022,7 @@ let popLetter = null;
 const POP_CASES = [["upper", "ABC"], ["lower", "abc"], ["mix", "AaBb"]];
 let popCase = "upper";
 const popShow = (l) => (popCase === "lower" || (popCase === "mix" && Math.random() < 0.5) ? l.toLowerCase() : l);
-const pop = () => tone([1400, 700], "square", 0.035);
+const pop = () => tone([990, 660], "triangle", 0.05);
 
 function letterPop() {
   const { target, balloons } = makeBalloonRound(Math.random, popLetter ?? undefined);
@@ -1008,8 +1052,7 @@ function letterPop() {
           counter.children[got].classList.add("got");
           got += 1;
           if (got < need) { say(`Pop! ${need - got} more!`); return; }
-          streak += 1;
-          celebrate(`You popped all the ${target}s!`);
+          celebrate(`You popped all the ${target}s!`, b, scored());
           showResult(result, h("div", { class: "choices two" },
             h("button", { class: "choice", onclick: () => { popLetter = target; letterPop(); } }, `🔁 ${target} again`),
             h("button", { class: "choice up", onclick: letterPop }, "New letter ➡️")));
@@ -1080,6 +1123,7 @@ function bigClimb(tabs) {
     tabs,
     h("div", { class: "ladder" }, BIG_NUMBERS.map((_, i) =>
       h("span", { class: i <= bigIndex ? "rung on" : "rung" }))),
+    h("div", { class: "ladder-step" }, `🧗 Step ${bigIndex + 1} of ${BIG_NUMBERS.length}`),
     bigFactCard(n),
     h("div", { class: "choices two" },
       h("button", { class: "choice", disabled: bigIndex === 0, onclick: () => step(-1) }, "⬇️ Smaller"),
@@ -1133,7 +1177,18 @@ function route() {
   // Yes or No? used to be its own tile; old bookmarks still point at it.
   if (location.hash === "#yesNo") { huntMode = "yesno"; location.replace("#storeHunt"); return; }
   const game = GAMES.find((g) => g.id === location.hash.slice(1));
+  tint(game?.color);
   game ? game.run() : home();
+  if (!reducedMotion()) app.animate([{ opacity: 0, transform: "translateY(10px)" }, { opacity: 1, transform: "none" }], { duration: 220, easing: "ease-out" });
+}
+
+// Each game's top bar (and the phone's status bar) wears its home-tile color, so he can tell where he is.
+const themeMeta = document.querySelector('meta[name="theme-color"]');
+const HOME_TINT = themeMeta.content;
+function tint(color) {
+  const bar = (color && shade(color, 0.78)) || HOME_TINT;
+  document.documentElement.style.setProperty("--topbar", bar);
+  themeMeta.content = bar;
 }
 document.getElementById("home-btn").addEventListener("click", () => { location.hash = ""; });
 window.addEventListener("hashchange", route);

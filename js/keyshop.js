@@ -358,8 +358,9 @@ function shop() {
     gallery = next;
     keyboard = {};
     save();
-    ui.celebrate("Your keyboard is in the gallery!");
+    // Screen first: its say() would cut off the cheer.
     galleryScreen(gallery.length - 1);
+    ui.celebrate("Your keyboard is in the gallery!");
   }
 
   async function pull(id) {
