@@ -9,6 +9,7 @@ import {
 } from "./logic.js";
 import { keyShop } from "./keyshop.js";
 import { spotter } from "./spotter.js";
+import { lineUp } from "./lineup.js";
 
 const byName = (a, b) => a.name.localeCompare(b.name);
 const STORES_AZ = [...STORES].sort(byName);
@@ -203,6 +204,7 @@ const GAMES = [
   { id: "videoStation", label: "Videos", emoji: "📺", color: "#e8a200", run: videoStation },
   { id: "hyatt", label: "Hyatt Hotels", emoji: "🏨", color: "#1e88c8", run: hyattGame },
   { id: "spotter", label: "State Spotter", emoji: "📍", color: "#2b9bb8", run: () => spotter(kit()) },
+  { id: "lineUp", label: "ABC Line-Up", emoji: "🔠", color: "#c75b2a", run: () => lineUp(kit()) },
 ];
 
 // Shared helpers for the games that live in their own modules.

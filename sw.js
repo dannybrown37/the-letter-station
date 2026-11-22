@@ -3,7 +3,7 @@ const IMAGES = "images-v1";
 const SHELL_FILES = [
   "./", "index.html", "style.css", "manifest.webmanifest", "icon.svg",
   "js/app.js", "js/data.js", "js/logic.js", "js/keyshop.js", "js/usmap.js",
-  "js/spotter.js", "js/spotter-logic.js",
+  "js/spotter.js", "js/spotter-logic.js", "js/lineup.js", "js/lineup-logic.js",
 ];
 
 self.addEventListener("install", (e) => {
