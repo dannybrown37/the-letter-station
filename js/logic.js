@@ -381,6 +381,21 @@ export function neighborLine(code) {
 export const finishTrip = (p) =>
   (p.stamps.length === PASSPORT_ORDER.length ? { stamps: [], at: p.at, trips: p.trips + 1 } : p);
 
+// Right answers fill the trail; wrong taps never empty it. A full trail is a party, then it starts fresh.
+export const TRAIL_SIZE = 5;
+export function starTrail(count, size = TRAIL_SIZE) {
+  const party = count > 0 && count % size === 0;
+  return { filled: party ? size : count % size, party };
+}
+
+// One utterance: a second speak() would cancel the first.
+export const rewardLine = ({ cheer, extra = "", stars, party = false }) =>
+  [cheer, extra.trim(), party ? "Your star trail is full!" : "", stars > 0 && stars % 10 === 0 ? `Wow! ${stars} stars!` : ""]
+    .filter(Boolean).join(" ");
+
+export const shade = (hex, t) =>
+  !/^#[0-9a-f]{6}$/i.test(hex ?? "") ? null : "#" + [1, 3, 5].map((i) => Math.round(parseInt(hex.slice(i, i + 2), 16) * t).toString(16).padStart(2, "0")).join("");
+
 // 8 balloons, 2-3 carry the target letter, the rest are other letters.
 export function makeBalloonRound(rng = Math.random, target = pick(ALPHABET, rng)) {
   const hits = 2 + Math.floor(rng() * 2);
