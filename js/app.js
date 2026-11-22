@@ -6,7 +6,7 @@ import {
   checkLetterAnswer, firstLetter, isDeadThumb, mergeVideos, makeCharacterQuestion, makeMixedCharacterQuestion,
   bigNumberText, makeBigNumberQuestion, makeBalloonRound, HYATTS, makeHyattQuestion, roomNumber,
   neighbors, travelMode, makeTripStop, loadPassport, PASSPORT_ORDER, neighborLine, finishTrip,
-  starTrail, rewardLine, TRAIL_SIZE, shade,
+  starTrail, rewardLine, starMilestone, TRAIL_SIZE, shade,
 } from "./logic.js";
 import { keyShop } from "./keyshop.js";
 
@@ -154,7 +154,7 @@ function celebrate(extra = "", from = null, party = false) {
   ding();
   buzz();
   addStar(from);
-  confetti(party || stars % 10 === 0 ? 40 : 18);
+  confetti(party || starMilestone(stars) ? 40 : 18);
   say(rewardLine({ cheer: pick(CHEERS), extra, stars, party }));
 }
 
@@ -163,7 +163,7 @@ let streak = 0;
 // Counts right answers this session. Unlike the streak it never drops, so a wrong tap costs nothing.
 let trail = 0;
 
-function scored() {
+function scoreRight() {
   streak += 1;
   trail += 1;
   const { filled, party } = starTrail(trail);
@@ -196,7 +196,7 @@ function choiceButtons(choices, { label = (c) => c, isRight, onRight, rightLine,
         if (isRight(c)) {
           done = true;
           b.classList.add("right");
-          celebrate(rightLine(c), b, scored());
+          celebrate(rightLine(c), b, scoreRight());
           onRight();
         } else {
           streak = 0;
@@ -479,7 +479,7 @@ function typedAnswerForm(q, kind) {
         input.classList.add("right");
         submit.textContent = "Next ➡️";
         hint.textContent = "";
-        celebrate(`${word} starts with ${q.letter}!`, input, scored());
+        celebrate(`${word} starts with ${q.letter}!`, input, scoreRight());
         return;
       }
       streak = 0;
@@ -1052,7 +1052,7 @@ function letterPop() {
           counter.children[got].classList.add("got");
           got += 1;
           if (got < need) { say(`Pop! ${need - got} more!`); return; }
-          celebrate(`You popped all the ${target}s!`, b, scored());
+          celebrate(`You popped all the ${target}s!`, b, scoreRight());
           showResult(result, h("div", { class: "choices two" },
             h("button", { class: "choice", onclick: () => { popLetter = target; letterPop(); } }, `🔁 ${target} again`),
             h("button", { class: "choice up", onclick: letterPop }, "New letter ➡️")));

@@ -1,8 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { starTrail, rewardLine, TRAIL_SIZE, shade } from "../js/logic.js";
+import { starTrail, rewardLine, starMilestone, TRAIL_SIZE, shade } from "../js/logic.js";
 
-// Darkens a game color for the top bar and the phone status bar.
+// null lets tint() fall back to the home pink instead of writing a broken color.
 for (const [hex, t, expected] of [
   ["#ff8a3d", 0.78, "#c76c30"],
   ["#FFFFFF", 0.5, "#808080"],
@@ -31,10 +31,9 @@ for (const [count, filled, party] of [
   });
 }
 
-test("starTrail uses a custom size", () => {
-  assert.deepEqual(starTrail(3, 3), { filled: 3, party: true });
-  assert.deepEqual(starTrail(4, 3), { filled: 1, party: false });
-});
+for (const [stars, expected] of [[0, false], [9, false], [10, true], [20, true], [25, false]]) {
+  test(`starMilestone(${stars}) = ${expected}`, () => assert.equal(starMilestone(stars), expected));
+}
 
 // Regression: the 10-star line used to be said first, then cut off by the cheer.
 for (const [args, expected] of [

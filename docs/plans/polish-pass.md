@@ -29,7 +29,7 @@ interactive elements smaller than 44px. No page had unintended sideways scroll
 ### Shared (app.js shared helpers + style.css)
 
 1. **Star trail** (logic, TDD): 5 slots in every quiz card. Each right answer fills one; it
-   never empties on a wrong tap. 5/5 → small party (extra confetti, "Five stars!"), then a
+   never empties on a wrong tap. 5/5 → small party (extra confetti, "Your star trail is full!"), then a
    fresh trail. `starTrail(count)` in logic.js. Streak text stays.
 2. **One reward line** (logic, TDD, bug fix): `rewardLine({ cheer, extra, stars, party })`
    joins cheer + milestone into one utterance so nothing gets cut off.
@@ -45,7 +45,7 @@ interactive elements smaller than 44px. No page had unintended sideways scroll
 8. **Tap targets ≥48px**: Hear it, chips, fact chips, grown-up buttons; kind badge and map line
    get an invisible bigger hit area so they look the same.
 9. **Tabs**: never wrap; 4-tab rows shrink their font.
-10. Safe-area left/right padding; calmer confetti (slower, less spin); sine pop sound.
+10. Safe-area left/right padding; calmer confetti (slower, less spin; 40 pieces on a full trail or every 10th star, else 18); triangle pop sound; `overflow-x: clip` so a bumping answer never makes the page scroll sideways.
 
 ### Per game
 
@@ -78,7 +78,7 @@ BEFORE                                  AFTER
 Fifth star:
 
 ```
-   ⭐ ⭐ ⭐ ⭐ ⭐   ← glows, extra confetti, "Great job! Five stars!"
+   ⭐ ⭐ ⭐ ⭐ ⭐   ← glows, extra confetti, "Great job! Your star trail is full!"
    next question: ☆ ☆ ☆ ☆ ☆  (fresh trail; never drops on a wrong tap)
 ```
 
