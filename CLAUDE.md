@@ -6,7 +6,9 @@ Learning game for the user's son (autistic). Special interests: letters, The Lea
 
 - **Mobile first, phone only.** Portrait, ~390px wide. Exception: Key Shop may turn (`canTurn()` in app.js); its studio goes side by side in landscape (`.bench.studio`). No desktop app planned. Big tap targets (≥48px), no hover-only UI, `font-size: 16px` on inputs (stops iOS zoom).
 - **No build step, no dependencies.** Plain HTML/CSS/ES modules. Installable PWA (`manifest.webmanifest`). Must work when hosted as static files.
-- **Kind feedback.** Wrong answers never end a round — he keeps tapping until he finds it (`choiceButtons` in `js/app.js`). No timers, no losing, no harsh sounds.
+- **Kind feedback.** Wrong answers never end a round — he keeps tapping until he finds it (`choiceButtons` in `js/app.js`). No timers, no losing, no harsh sounds (sine/triangle only). Wrong taps look dimmed + dashed, never red.
+- **Rewards.** A right answer calls `celebrate(extra, fromEl, scored())`: ding, 20ms `navigator.vibrate` tick, confetti, a ⭐ that flies from `fromEl` to the top-bar count, one spoken line from `rewardLine()` (never two `say()`s in a row: the second cancels the first). Quiz cards show `streakLine()`: the 5-star trail (`starTrail`, session count, never drops on a wrong tap; full = party) plus the 🔥 streak text.
+- Each game's top bar and `theme-color` use its GAMES color, darkened with `shade()` (`tint()` in `route()`); new games get this for free.
 - **Read aloud, with a top-bar toggle (🔊/🔇, localStorage `narration`).** `say()` = automatic narration, obeys the toggle. `speak()` = something he tapped to hear (🔊 Hear it, word chips, kind badge); always talks. Use the right one.
 - **Dark theme only** (user asked: the light theme was too bright). Use the `--bg/--card/--panel/--ink/--muted/--line` vars, never `#fff` backgrounds. Brand-colored text goes through `brandText()` so dark brand colors stay readable.
 - Respect `prefers-reduced-motion` (already handled in CSS).
