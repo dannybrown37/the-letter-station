@@ -39,6 +39,49 @@ export function makeCourse(rng = Math.random) {
 
 export const flipsFor = (power) => 1 + Math.floor(power * 2);
 
+export const GAP = 6;
+export const PAN_R = 1.1;
+export const MOUTH_R = 0.75;
+export const REST_Y = 0.2;
+export const panPos = (i) => ({ x: i % 2 ? 1.1 : -1.1, y: 0, z: i * GAP });
+export const mouthPos = () => ({ x: 0, y: 1.25, z: PANS * GAP });
+
+// Misses are pushed well past the rim so they visibly land on the counter.
+const MISS_OFFSET = 1.6;
+
+export function planFlight(course, hop, power) {
+  const c = course[hop];
+  const result = judge(power, c.target, c.scale);
+  const from = { ...panPos(hop), y: REST_Y };
+  const goal = c.mouth ? mouthPos() : { ...panPos(hop + 1), y: REST_Y };
+  const dx = goal.x - from.x, dz = goal.z - from.z;
+  const len = Math.hypot(dx, dz);
+  const reach = (c.mouth ? MOUTH_R : PAN_R) * 0.85;
+  const off = result.landed ? result.offset : Math.sign(result.offset) * Math.max(Math.abs(result.offset), MISS_OFFSET);
+  const end = { x: goal.x + (dx / len) * off * reach, y: result.landed ? goal.y : 0.04, z: goal.z + (dz / len) * off * reach };
+  const flips = flipsFor(power) + (result.landed ? 0 : 0.5);
+  return { from, end, result, flips, apex: 1.7 + power * 1.1, dur: 950 + flipsFor(power) * 120 };
+}
+
+export function flightPoint({ from, end, apex }, t) {
+  return {
+    x: from.x + (end.x - from.x) * t,
+    y: from.y + (end.y - from.y) * t + apex * 4 * t * (1 - t),
+    z: from.z + (end.z - from.z) * t,
+  };
+}
+
+export function arcPoints(plan, n, project = (x, y, z) => ({ x, y, z })) {
+  const out = [];
+  for (let k = 0; k < n; k++) {
+    const t = k / (n - 1);
+    const { x, y, z } = flightPoint(plan, t);
+    const p = project(x, y, z);
+    if (p) out.push({ ...p, t });
+  }
+  return out;
+}
+
 export function pancakeSnack(rng = Math.random) {
   const letter = pick(ALPHABET.filter((l) => wordsForLetter(l, "snacks").length), rng);
   return { letter, word: pick(wordsForLetter(letter, "snacks"), rng) };
