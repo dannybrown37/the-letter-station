@@ -1,18 +1,27 @@
 import { WORDS } from "./data.js";
 import { firstLetter, shuffle } from "./logic.js";
 import {
-  makeTrack, makeRow, judgeGate, steerToward, bikeLine, bikeLetter, bikeSnack, rideSpeed, rowZ, laneStep, FINISH_GAP,
-  zoneMix, propZone, featureAt, blendPalette, mixColor, GATE_HALF, TARGETS,
+  makeTrackStream, makeRows, judgeGate, steerToward, bikeLine, switchLine, bikeLetter, bikeSnack, rideSpeed, laneStep,
+  zoneMix, kindMix, propZone, featureAt, blendPalette, mixColor, GATE_HALF, HEARTS, KIND_OF,
+  startRun, scoreRow, runOver, endLine, readBest, saveBest,
 } from "./bike-logic.js";
 
 const CSS = `
 .bk-hud { display: flex; align-items: center; gap: 10px; text-align: left; }
 .bk-hud .bk-text { flex: 1; min-width: 0; }
 .bk-hud .prompt { margin: 0; }
-.bk-dots { display: flex; gap: 6px; margin-top: 4px; }
-.bk-dots i { width: 14px; height: 14px; border-radius: 50%; background: var(--line); }
-.bk-dots i.done { background: #36c275; }
-.bk-score { flex: 0 0 auto; font-size: 1.5rem; font-weight: 900; }
+.bk-find { display: flex; align-items: center; gap: 10px; font-weight: 900; font-size: 1.2rem; }
+.bk-big { display: grid; place-items: center; min-width: 64px; height: 64px; padding: 0 8px; border-radius: 16px;
+  background: #ffd23f; color: #2a1d0a; font-size: 2.6rem; line-height: 1; }
+.bk-big.new { animation: bk-new .5s ease-out; }
+@keyframes bk-new { 0% { transform: scale(.4); } 70% { transform: scale(1.15); } }
+.bk-hearts { display: flex; gap: 6px; margin-top: 6px; }
+.bk-hearts svg { width: 26px; height: 26px; transition: opacity .4s, transform .4s; }
+.bk-hearts path { fill: #ffd23f; stroke: #ffd23f; stroke-width: 1.5; }
+.bk-hearts .lost { opacity: .45; transform: scale(.85); }
+.bk-hearts .lost path { fill: none; stroke: var(--muted); stroke-dasharray: 3 2; }
+.bk-score { flex: 0 0 auto; display: grid; justify-items: center; font-size: 2rem; font-weight: 900; line-height: 1; }
+.bk-score small { font-size: .75rem; font-weight: 700; color: var(--muted); margin-top: 2px; }
 .bk-stage { position: relative; margin-top: 10px; border-radius: 20px; overflow: hidden; }
 .bk-stage canvas { display: block; width: 100%; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 .bk-hint { position: absolute; left: 0; right: 0; bottom: 14px; text-align: center; font-weight: 900; font-size: 1.15rem;
@@ -24,7 +33,8 @@ const CSS = `
 `;
 
 const TITLE = "Bike Ride 🚲";
-const TABS = [[false, "ABC"], [true, "abc"]];
+const TABS = [[false, false, "ABC"], [false, true, "abc"], [true, false, "Switch"]];
+const HEART = "M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.6 4.5c2.2 0 3.6 1.3 5.4 3.3 1.8-2 3.2-3.3 5.4-3.3 3.6 0 5.7 3.9 4.2 7.3C19.5 16.4 12 21 12 21z";
 const RW = 2;
 const CAM_H = 2.2;
 const AHEAD = 3.4;
@@ -36,6 +46,7 @@ const FLAG_COLORS = ["#e94b6a", "#3fa9f5", "#8f6bff", "#ff8a3d", "#00a99b", "#d6
 
 let ui;
 let lower = false;
+let swap = false;
 let letter = null;
 
 function addStyle() {
@@ -65,44 +76,70 @@ function signWords(l) {
 }
 
 function play() {
-  const { h, screen, say, speak, celebrate, tone, boop, store } = ui;
+  const { h, svg, screen, say, speak, celebrate, tone, boop, store } = ui;
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const show = (l) => (lower ? l.toLowerCase() : l);
-  const track = makeTrack();
-  const curveAt = (i) => track[((i % track.length) + track.length) % track.length];
+  const mode = swap ? "switch" : "letter";
+  const track = makeTrackStream();
+  const curveAt = (i) => track.at(i);
+  const nextRow = makeRows({ letter, swap });
   const snack = bikeSnack(letter);
   const signs = signWords(letter);
-  const prompt = `Ride through the ${letter} flags!`;
+  // In Switch mode the target is whatever the next row carries; it changes after every flag.
+  const target = () => rows.find((o) => !o.judged)?.letter ?? letter;
+  const promptLine = () => (swap ? `Find ${target()}!` : `Ride through the ${letter} flags!`);
   const promptEl = h("div", { class: "prompt" });
-  // Case is display only, so switching tabs mid-ride keeps the run.
+  const bigEl = h("span", { class: "bk-big" });
+  // Case is display only, so ABC ↔ abc keeps the run; Switch is a different game, so it starts fresh.
   const tabs = h("div", { class: "tabs" });
   const drawTabs = () => {
-    promptEl.textContent = `Ride through the ${show(letter)} flags!`;
-    tabs.replaceChildren(...TABS.map(([k, lbl]) =>
-      h("button", { class: lower === k ? "on" : "", onclick: () => { lower = k; drawTabs(); } }, lbl)));
+    tabs.replaceChildren(...TABS.map(([sw, lo, lbl]) => h("button", {
+      class: swap === sw && (sw || lower === lo) ? "on" : "",
+      onclick: () => {
+        const restart = sw !== swap;
+        swap = sw;
+        if (!sw) lower = lo;
+        if (restart) play();
+        else { drawTabs(); drawTarget(); }
+      },
+    }, lbl)));
   };
-  drawTabs();
 
   const canvas = h("canvas", { "aria-label": "Bike ride. Touch left or right to steer." });
   const hint = h("div", { class: "bk-hint" }, "👆 Tap to ride! Steer with your finger");
-  const scoreEl = h("div", { class: "bk-score" }, "🚩 0");
-  const dots = h("div", { class: "bk-dots" });
+  const countEl = h("b", {}, "0");
+  const scoreEl = h("div", { class: "bk-score", "aria-label": "Letters caught" }, countEl, h("small", {}, "letters"));
+  const heartEls = Array.from({ length: HEARTS }, () => svg("svg", { viewBox: "0 0 24 24", "aria-hidden": "true" }, svg("path", { d: HEART })));
+  const hearts = h("div", { class: "bk-hearts", role: "img" }, heartEls);
   const done = h("div");
+  let shown = null;
+  const drawTarget = () => {
+    const l = target();
+    if (!swap) { promptEl.textContent = `Ride through the ${show(letter)} flags!`; return; }
+    bigEl.textContent = show(l);
+    if (l !== shown && shown !== null && !reduced) {
+      bigEl.classList.remove("new");
+      void bigEl.offsetWidth;
+      bigEl.classList.add("new");
+    }
+    shown = l;
+  };
   const drawHud = () => {
-    scoreEl.textContent = `🚩 ${caught}`;
-    dots.replaceChildren(...Array.from({ length: TARGETS }, (_, i) => h("i", { class: i < caught ? "done" : "" })));
+    countEl.textContent = run.caught;
+    heartEls.forEach((el, i) => el.classList.toggle("lost", i >= run.hearts));
+    hearts.setAttribute("aria-label", `${run.hearts} of ${HEARTS} helmets left`);
+    drawTarget();
   };
 
   screen(TITLE,
     tabs,
     h("div", { class: "card compact" },
       h("div", { class: "bk-hud" },
-        h("div", { class: "bk-text" }, promptEl, dots),
+        h("div", { class: "bk-text" }, swap ? h("div", { class: "bk-find" }, "Find", bigEl) : promptEl, hearts),
         scoreEl,
-        h("button", { class: "say round", "aria-label": "Hear it", onclick: () => speak(`${prompt} Touch left or right to steer.`) }, "🔊"))),
+        h("button", { class: "say round", "aria-label": "Hear it", onclick: () => speak(`${promptLine()} Touch left or right to steer.`) }, "🔊"))),
     h("div", { class: "bk-stage" }, canvas, hint),
     done);
-  say(`${prompt} Tap to go.`);
 
   const ctx = canvas.getContext("2d");
   let W = 0, H = 0, F = 0, HZ = 0;
@@ -127,14 +164,16 @@ function play() {
   let state = "ready";
   let camZ = 0, v = 0, x = 0, targetX = 0, lean = 0, pedal = 0, bgX = 0;
   let wobble = 0, shake = 0;
-  let caught = 0, firstTry = 0, slotMissed = false;
-  let rowIndex = 0, prevX = null, finishZ = null;
+  let run = startRun();
   const rows = [];
+  let upcoming = nextRow();
   let sparks = [];
   let popup = null;
   let osc = null;
   let last = performance.now();
+  drawTabs();
   drawHud();
+  say(`${promptLine()} Tap to go.`);
 
   function hum(on) {
     try {
@@ -187,43 +226,37 @@ function play() {
   canvas.addEventListener("pointerup", up);
   canvas.addEventListener("pointercancel", up);
 
+  // One row object at a time from the endless generator; passed rows are dropped in frame(), so the list stays ~4 long.
   function spawnRows() {
-    while (finishZ === null && rowZ(rowIndex) < camZ + DRAW + 20) {
-      const row = makeRow(letter, prevX, rowIndex);
-      prevX = row.gates.find((g) => g.target).x;
+    while (upcoming.z < camZ + DRAW + 20) {
       // Colors are shuffled per row so the target's color never gives the letter away.
       const colors = shuffle(FLAG_COLORS);
-      row.gates.forEach((g, k) => { g.color = colors[k]; });
-      rows.push({ ...row, z: rowZ(rowIndex), index: rowIndex, judged: false, glow: false });
-      rowIndex += 1;
+      upcoming.gates.forEach((g, k) => { g.color = colors[k]; });
+      rows.push({ ...upcoming, judged: false, glow: false });
+      upcoming = nextRow();
     }
   }
 
   function judge(row, now) {
     row.judged = true;
     const r = judgeGate(row, x);
-    const line = bikeLine(r.kind, letter, row, x, r.gate);
+    run = scoreRow(run, r.kind);
+    const over = runOver(run);
+    const next = rows.find((o) => !o.judged);
+    const line = swap ? switchLine(r.kind, row.letter, r.gate, next?.letter ?? letter) : bikeLine(r.kind, row.letter, row, x, r.gate);
+    drawHud();
     if (r.kind === "right") {
-      caught += 1;
-      if (!slotMissed) firstTry += 1;
-      slotMissed = false;
       r.gate.caught = now;
       tone([784, 1047, 1319], "sine", 0.07);
       for (let k = 0; k < (reduced ? 10 : 18); k++) {
         const a = Math.random() * Math.PI * 2, sp = 80 + Math.random() * 160;
         sparks.push({ x: W / 2 + (x * W) / 4, y: H * 0.55, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 120, t0: now, hue: k % 3 });
       }
-      popup = { text: `${show(letter)}! ⭐`, color: "#ffd23f", t0: now };
-      drawHud();
-      if (caught >= TARGETS) {
-        rows.splice(rows.indexOf(row) + 1);
-        finishZ = row.z + FINISH_GAP;
-      } else say(line);
+      popup = { text: `${show(row.letter)}! ⭐`, color: "#ffd23f", t0: now };
+      say(line);
       return;
     }
-    slotMissed = true;
-    const next = rows.find((o) => !o.judged);
-    if (next) next.glow = true;
+    if (next && !over) next.glow = true;
     if (r.kind === "wrong") {
       r.gate.bumped = now;
       wobble = 1;
@@ -233,30 +266,40 @@ function play() {
     } else {
       wobble = 0.5;
       tone([392, 330], "sine", 0.12);
-      popup = { text: `Find ${show(letter)}!`, color: "#c9b8ff", t0: now };
+      popup = { text: `Find ${show(swap ? next?.letter ?? letter : letter)}!`, color: "#c9b8ff", t0: now };
     }
-    say(line);
+    if (over) state = "finish";
+    else say(line);
   }
 
   function finish() {
     state = "done";
     hum(false);
-    const best = Math.max(firstTry, store.get("bikeBest", 0));
+    const { best, isNew } = saveBest(store.get("bikeBest", null), mode, run.caught);
     store.set("bikeBest", best);
-    celebrate(`${letter} is for ${snack}! You got all the ${letter} flags!`, scoreEl);
+    const line = endLine(run.caught);
+    const top = readBest(best, mode);
+    if (run.caught) celebrate(`${line}${isNew ? " That's your new best!" : ""}`, scoreEl, isNew);
+    else say(line);
     done.replaceChildren(h("div", { class: "card bk-done" },
-      h("div", { class: "prompt" }, `🏁 ${show(letter)} is for ${snack}!`),
-      h("div", { class: "sub" }, `${firstTry} of ${TARGETS} on the first try · Best: ${best}`),
+      h("div", { class: "prompt" }, `🏁 ${line}`),
+      swap ? null : h("div", { class: "sub" }, `${show(letter)} is for ${snack}`),
+      h("div", { class: "sub" }, isNew ? "🏆 New best!" : `Best: ${top}`),
       h("div", { class: "bk-buttons" },
         h("button", { class: "next", onclick: play }, "Ride again 🚲"),
-        h("button", { class: "next", onclick: () => { letter = bikeLetter(Math.random, letter); play(); } }, "New letter 🔤"))));
+        swap ? null : h("button", { class: "next", onclick: () => { letter = bikeLetter(Math.random, letter); play(); } }, "New letter 🔤"))));
     requestAnimationFrame(() => done.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "end" }));
   }
 
+  // Blended palettes per road segment, dropped once the camera passes them.
   const palettes = new Map();
+  let paletteFloor = 0;
   const paletteAt = (i) => {
     if (!palettes.has(i)) palettes.set(i, blendPalette(zoneMix(i)));
     return palettes.get(i);
+  };
+  const dropPalettes = (below) => {
+    for (; paletteFloor < below; paletteFloor++) palettes.delete(paletteFloor);
   };
 
   const xs = new Float64Array(DRAW + 2);
@@ -292,17 +335,31 @@ function play() {
 
   const STARS = Array.from({ length: 70 }, (_, i) => ({ x: hash(i * 7 + 1), y: hash(i * 7 + 2), r: 0.6 + hash(i * 7 + 3) * 1.4 }));
 
-  function drawSky(pal, mix, now) {
+  function drawSky(pal, zones, now) {
+    const mix = kindMix(zones);
     const g = ctx.createLinearGradient(0, 0, 0, HZ + 40);
     g.addColorStop(0, pal.skyTop);
     g.addColorStop(0.6, pal.skyMid);
     g.addColorStop(1, pal.skyLow);
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
-    if (mix.town > 0.01) {
-      ctx.globalAlpha = mix.town;
-      ctx.fillStyle = "#ffcf7a";
+    const sun = zones.town + zones.autumn;
+    if (sun > 0.01) {
+      ctx.globalAlpha = sun;
+      ctx.fillStyle = zones.autumn > zones.town ? "#ffb066" : "#ffcf7a";
       ctx.beginPath(); ctx.arc(W * 0.72, HZ - 6, W * 0.11, 0, Math.PI * 2); ctx.fill();
+    }
+    if (zones.night > 0.01) {
+      ctx.fillStyle = "#fff";
+      for (const st of STARS) {
+        ctx.globalAlpha = zones.night * (reduced ? 0.8 : 0.5 + 0.3 * Math.sin(now / 700 + st.y * 30));
+        ctx.beginPath(); ctx.arc(((st.x * W * 1.3 - bgX * 0.05) % W + W) % W, st.y * HZ * 0.8, st.r * 0.8, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.globalAlpha = zones.night;
+      ctx.fillStyle = "#fff4d6";
+      ctx.beginPath(); ctx.arc(W * 0.75, HZ * 0.32, 20, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = pal.skyTop;
+      ctx.beginPath(); ctx.arc(W * 0.75 + 8, HZ * 0.32 - 5, 17, 0, Math.PI * 2); ctx.fill();
     }
     if (mix.nature > 0.01) {
       ctx.globalAlpha = mix.nature * 0.8;
@@ -320,8 +377,8 @@ function play() {
         ctx.globalAlpha = mix.mystic * tw;
         ctx.beginPath(); ctx.arc(((st.x * W * 1.2 - bgX * 0.05) % W + W) % W, st.y * HZ, st.r, 0, Math.PI * 2); ctx.fill();
       }
-      for (const [k, color] of [[0, "#5affc8"], [1, "#ff7ae0"], [2, "#7ab8ff"]]) {
-        ctx.globalAlpha = mix.mystic * 0.28;
+      for (const [k, color] of [[0, "#5affc8"], [1, zones.deep > zones.mystic ? "#ffd23f" : "#ff7ae0"], [2, "#7ab8ff"]]) {
+        ctx.globalAlpha = zones.mystic * 0.28 + zones.deep * 0.45;
         ctx.strokeStyle = color;
         ctx.lineWidth = 16 - k * 3;
         ctx.beginPath();
@@ -336,18 +393,25 @@ function play() {
       ctx.beginPath(); ctx.arc(W * 0.24, HZ * 0.3, 16, 0, Math.PI * 2); ctx.fill();
     }
     ctx.globalAlpha = 1;
-    drawBackdrop(pal, mix);
+    drawBackdrop(pal, mix, zones.night);
   }
 
-  function drawBackdrop(pal, mix) {
+  function drawBackdrop(pal, mix, night) {
     const shift = (k) => ((-bgX * k) % W + W) % W;
     if (mix.town > 0.01) {
-      ctx.globalAlpha = mix.town;
-      ctx.fillStyle = pal.hillFar;
       for (let rep = -1; rep <= 1; rep++) {
         for (let k = 0; k < 12; k++) {
-          const bw = W / 12, bh = 14 + hash(k + 50) * 34;
-          ctx.fillRect(shift(0.3) + rep * W + k * bw, HZ - bh, bw - 2, bh + 4);
+          const bw = W / 12, bh = 14 + hash(k + 50) * 34, bx = shift(0.3) + rep * W + k * bw;
+          ctx.globalAlpha = mix.town;
+          ctx.fillStyle = pal.hillFar;
+          ctx.fillRect(bx, HZ - bh, bw - 2, bh + 4);
+          if (night > 0.01) {
+            ctx.globalAlpha = night;
+            ctx.fillStyle = "#ffd98a";
+            for (let wy = HZ - bh + 5; wy < HZ - 4; wy += 8) {
+              for (let wx = 4; wx < bw - 6; wx += 7) if (hash(k * 97 + wy * 13 + wx) < 0.45) ctx.fillRect(bx + wx, wy, 3, 3);
+            }
+          }
         }
       }
     }
@@ -452,11 +516,11 @@ function play() {
       nature: roll < 0.45 ? "pine" : roll < 0.7 ? "tree" : roll < 0.88 ? "flowers" : "rock",
       mystic: roll < 0.4 ? "mushroom" : roll < 0.65 ? "crystal" : roll < 0.85 ? "orb" : "island",
     };
-    const kind = kinds[zone];
+    const kind = kinds[KIND_OF[zone]];
     const near = kind === "mailbox" || kind === "lamp" || kind === "flowers";
     const far = kind === "house" || kind === "shop" || kind === "island";
     const dist = near ? 1.22 + roll * 0.2 : far ? 2 + hash(i + 4000) * 1.2 : 1.4 + hash(i + 4000) * 1.6;
-    list.push({ z: i + 0.5, kind, rx: side * RW * dist, u: hash(i + 5000), side, word: signs[Math.floor(hash(i + 6000) * signs.length)] });
+    list.push({ z: i + 0.5, kind, zone, rx: side * RW * dist, u: hash(i + 5000), side, word: signs[Math.floor(hash(i + 6000) * signs.length)] });
   }
 
   function drawProp(p, now) {
@@ -476,10 +540,13 @@ function play() {
       ctx.fillStyle = rg; ctx.fillRect(g.x + (cx - r) * s, g.y - (cy + r) * s, 2 * r * s, 2 * r * s);
     };
     const body = ["#e8c39e", "#c9a3d9", "#a8d0e6", "#f2b880", "#b8d8a8"][Math.floor(p.u * 5)];
+    const night = p.zone === "night", autumn = p.zone === "autumn", deep = p.zone === "deep";
+    const leaf = autumn ? ["#d9622b", "#e8a33d", "#b8432a"][Math.floor(p.u * 3)] : null;
     switch (p.kind) {
       case "house":
-        rect(body, -1.3, 0, 2.6, 1.8);
+        rect(night ? mixColor(body, "#1a2148", 0.55) : body, -1.3, 0, 2.6, 1.8);
         tri("#8a3b3b", -1.55, 1.8, 0, 3.1, 1.55, 1.8);
+        if (night) glow("rgba(255,217,138,.5)", 0, 1.05, 1.4);
         rect("#ffd98a", -0.9, 0.8, 0.6, 0.55); rect("#ffd98a", 0.3, 0.8, 0.6, 0.55);
         rect("#5b3a22", -0.25, 0, 0.5, 0.95);
         break;
@@ -514,17 +581,21 @@ function play() {
         break;
       case "tree":
         rect("#5b3a22", -0.14, 0, 0.28, 1.2);
-        dot("#3b8a3f", 0, 1.9, 0.95); dot("#47a04a", -0.4, 2.2, 0.6); dot("#47a04a", 0.45, 2.1, 0.55);
+        dot(leaf ?? "#3b8a3f", 0, 1.9, 0.95);
+        dot(leaf ? mixColor(leaf, "#ffd23f", 0.3) : "#47a04a", -0.4, 2.2, 0.6);
+        dot(leaf ? mixColor(leaf, "#ffd23f", 0.3) : "#47a04a", 0.45, 2.1, 0.55);
         break;
-      case "flowers":
-        for (let k = 0; k < 5; k++) dot(["#ff7aa8", "#ffd23f", "#ffffff", "#b48cff"][k % 4], (k - 2) * 0.22, 0.12 + (k % 2) * 0.1, 0.09);
+      case "flowers": {
+        const colors = autumn ? ["#d9622b", "#e8a33d", "#b8432a", "#8a5a2b"] : ["#ff7aa8", "#ffd23f", "#ffffff", "#b48cff"];
+        for (let k = 0; k < 5; k++) dot(colors[k % 4], (k - 2) * 0.22, 0.12 + (k % 2) * 0.1, 0.09);
         break;
+      }
       case "rock":
         dot("#7d8590", 0, 0.25, 0.45); dot("#9aa1ab", -0.15, 0.4, 0.22);
         break;
       case "mushroom": {
-        const c = p.u < 0.5 ? "#ff7ae0" : "#7ff5e0";
-        glow(`${c}88`, 0, 1, 1.4);
+        const c = deep ? (p.u < 0.5 ? "#ffd23f" : "#5affc8") : p.u < 0.5 ? "#ff7ae0" : "#7ff5e0";
+        glow(`${c}88`, 0, 1, deep ? 2 : 1.4);
         rect("#f4ead5", -0.15, 0, 0.3, 0.9);
         ctx.fillStyle = c;
         ctx.beginPath(); ctx.ellipse(g.x, g.y - 0.95 * s, 0.75 * s, 0.45 * s, 0, Math.PI, 0); ctx.fill();
@@ -532,8 +603,8 @@ function play() {
         break;
       }
       case "crystal": {
-        const c = p.u < 0.5 ? "#7ff5e0" : "#c79bff";
-        glow(`${c}66`, 0, 0.8, 1.3);
+        const c = deep ? (p.u < 0.5 ? "#ffd23f" : "#5affc8") : p.u < 0.5 ? "#7ff5e0" : "#c79bff";
+        glow(`${c}66`, 0, 0.8, deep ? 1.9 : 1.3);
         tri(c, -0.35, 0, 0, 1.8, 0.35, 0);
         tri(mixColor(c, "#ffffff", 0.4), -0.6, 0, -0.35, 1.1, -0.1, 0);
         tri(mixColor(c, "#000000", 0.2), 0.15, 0, 0.45, 1.2, 0.7, 0);
@@ -632,32 +703,6 @@ function play() {
     }
   }
 
-  function drawFinish() {
-    const l = at(-RW * 1.25, finishZ), r = at(RW * 1.25, finishZ);
-    if (!l || !r) return;
-    const s = l.s;
-    ctx.globalAlpha = fade(l.dz);
-    ctx.fillStyle = "#e8e8e8";
-    for (const p of [l, r]) ctx.fillRect(p.x - 0.1 * s, p.y - 3.2 * s, 0.2 * s, 3.2 * s);
-    const top = l.y - 3.2 * s, bh = 0.7 * s, cells = 14, cw = (r.x - l.x) / cells;
-    for (let k = 0; k < cells; k++) for (let j = 0; j < 2; j++) {
-      ctx.fillStyle = (k + j) % 2 ? "#111" : "#fff";
-      ctx.fillRect(l.x + k * cw, top + (j * bh) / 2, cw + 0.5, bh / 2 + 0.5);
-    }
-    const fs = Math.max(0.5 * s, l.dz < 130 ? 13 : 0);
-    if (fs) {
-      ctx.font = `900 ${fs}px system-ui, sans-serif`;
-      ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      const text = `${show(letter)} is for ${snack}`;
-      const tw = Math.min(ctx.measureText(text).width, W * 0.9) + fs;
-      ctx.fillStyle = "#ffd23f";
-      ctx.beginPath(); ctx.roundRect((l.x + r.x) / 2 - tw / 2, top - fs * 1.7, tw, fs * 1.5, fs * 0.4); ctx.fill();
-      ctx.fillStyle = "#3b2a20";
-      ctx.fillText(text, (l.x + r.x) / 2, top - fs * 0.95, W * 0.9);
-    }
-    ctx.globalAlpha = 1;
-  }
-
   function drawBike(now) {
     const bz = camZ + AHEAD;
     const g = at(x * RW, bz);
@@ -737,7 +782,7 @@ function play() {
     }
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
-    const top = rideSpeed(reduced);
+    const top = rideSpeed(reduced, camZ);
     if (state === "ride") v = Math.min(top, v + 6 * dt);
     if (state === "finish") {
       v = Math.max(0, v - 8 * dt);
@@ -759,11 +804,11 @@ function play() {
     for (const row of rows) if (!row.judged && bz >= row.z && state === "ride") judge(row, now);
     while (rows.length && rows[0].z < camZ - 2) rows.shift();
     const next = rows.find((o) => !o.judged)?.gates.find((g) => g.target);
-    const label = next ? `Bike ride. The next ${letter} flag is on the ${laneName(next.x)}.` : "Bike ride.";
+    const label = next && state === "ride" ? `Bike ride. The next ${next.letter} flag is on the ${laneName(next.x)}.` : "Bike ride.";
     if (canvas.getAttribute("aria-label") !== label) canvas.setAttribute("aria-label", label);
-    if (state === "ride" && finishZ !== null && bz >= finishZ) state = "finish";
 
     offsets();
+    dropPalettes(base);
     camX = x * RW * CAM_FOLLOW + (shake ? Math.sin(now / 25) * shake * 0.12 : 0);
     camY = roadY(camZ) + CAM_H;
     const mix = zoneMix(bz + 20);
@@ -773,7 +818,6 @@ function play() {
     props.length = 0;
     for (let n = DRAW - 1; n >= 1; n--) propsFor(base + n, props);
     for (const row of rows) props.push({ z: row.z, kind: "row", row });
-    if (finishZ !== null) props.push({ z: finishZ, kind: "finish" });
     props.push({ z: bz, kind: "bike" });
     props.sort((a, b) => b.z - a.z);
     let k = 0;
@@ -784,7 +828,6 @@ function play() {
         const p = props[k++];
         if (p.z > camZ + DRAW) continue;
         if (p.kind === "row") drawRow(p.row, now);
-        else if (p.kind === "finish") drawFinish();
         else if (p.kind === "bike") drawBike(now);
         else drawProp(p, now);
       }
