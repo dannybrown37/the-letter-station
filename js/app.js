@@ -13,6 +13,7 @@ import { spotter } from "./spotter.js";
 import { lineUp } from "./lineup.js";
 import { shopping } from "./shopping.js";
 import { pancake } from "./pancake.js";
+import { bike } from "./bike.js";
 
 const byName = (a, b) => a.name.localeCompare(b.name);
 const STORES_AZ = [...STORES].sort(byName);
@@ -250,6 +251,7 @@ const GAMES = [
   { id: "lineUp", label: "ABC Line Up", emoji: "🔠", color: "#c75b2a", run: () => lineUp(kit()) },
   { id: "shopping", label: "Shopping Trip", emoji: "🧺", color: "#4c9a2a", run: () => shopping(kit()) },
   { id: "pancake", label: "Pancake Flip", emoji: "🥞", color: "#e0902a", run: () => pancake(kit()) },
+  { id: "bike", label: "Bike Ride", emoji: "🚲", color: "#3466d6", run: () => bike(kit()) },
 ];
 
 // Shared helpers for the games that live in their own modules.
