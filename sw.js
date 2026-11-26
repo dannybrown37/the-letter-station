@@ -1,4 +1,4 @@
-const SHELL = "shell-v8";
+const SHELL = "shell-v9";
 const IMAGES = "images-v1";
 const SHELL_FILES = [
   "./", "index.html", "style.css", "manifest.webmanifest", "icon.svg",
